@@ -31,7 +31,7 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "mrcatz": "./dist/cli.js"
+    "mrcatz": "dist/cli.js"
   },
   "exports": {
     ".": {
