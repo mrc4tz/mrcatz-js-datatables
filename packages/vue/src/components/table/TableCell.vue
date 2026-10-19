@@ -87,7 +87,11 @@ const Rendered: FunctionalComponent<{ content: VNodeChild }> = (p) => h('span', 
 
   <Rendered v-else-if="column.render" :content="column.render(row, ctx)" />
 
-  <span v-else-if="tone" class="badge badge-sm badge-soft" :class="badgeClass[tone]">
+  <span
+    v-else-if="tone"
+    class="badge badge-sm whitespace-nowrap"
+    :class="[badgeClass[tone], { 'badge-soft': (column.badgeVariant ?? 'soft') === 'soft', 'badge-outline': column.badgeVariant === 'outline', uppercase: column.uppercase }]"
+  >
     <MrcHighlight v-if="column.highlight !== false" :text="text" :search="ctx.search" />
     <template v-else>{{ text }}</template>
   </span>

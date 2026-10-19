@@ -25,9 +25,9 @@ const initial = computed(() => (props.fallback ?? props.alt ?? '?').trim().charA
   </button>
   <span
     v-else
-    class="bg-primary/10 text-primary inline-flex items-center justify-center text-sm font-semibold"
+    class="bg-primary/10 text-primary inline-flex items-center justify-center font-semibold"
     :class="imgClass"
-    :style="{ width: `${width}px`, height: `${height}px` }"
+    :style="{ width: `${width}px`, height: `${height}px`, fontSize: `${Math.max(12, Math.round(Math.min(width, height) * 0.38))}px` }"
     aria-hidden="true"
   >
     {{ initial }}

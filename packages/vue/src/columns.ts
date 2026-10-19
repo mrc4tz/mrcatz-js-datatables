@@ -89,6 +89,8 @@ export interface ColumnDef<T = any> {
   editable?: InlineEditConfig<T> | false;
   /** Badge berwarna per nilai. */
   badge?: Record<string, Tone> | ((value: unknown, row: T) => Tone);
+  /** Gaya badge: `soft` (default), `solid`, atau `outline`. */
+  badgeVariant?: 'soft' | 'solid' | 'outline';
   image?: ImageConfig;
   actions?: ActionsConfig<T>;
   /** Ikut diekspor. Default true kecuali kolom aksi. */
@@ -114,6 +116,7 @@ type Common<T> = Partial<
     | 'format'
     | 'exportable'
     | 'exportValue'
+    | 'badgeVariant'
   >
 > & { sortable?: boolean };
 

@@ -7,6 +7,8 @@ export const iconPaths = {
   columns: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/>',
   refresh: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
   reset: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+  upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
+  home: '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
   download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
   'chevron-left': '<path d="m15 18-6-6 6-6"/>',
   'chevron-right': '<path d="m9 18 6-6-6-6"/>',
@@ -37,4 +39,14 @@ export const iconPaths = {
   'mouse-pointer': '<path d="M4.04 4.65a.5.5 0 0 1 .61-.61l16 6.5a.5.5 0 0 1-.06.94l-6.13 1.58a2 2 0 0 0-1.44 1.43l-1.58 6.13a.5.5 0 0 1-.94.06z"/>',
 } as const;
 
-export type IconName = keyof typeof iconPaths;
+export type BuiltinIcon = keyof typeof iconPaths;
+/**
+ * Nama ikon bawaan (SVG), atau nama ikon Material Symbols apa pun
+ * (`'manage_accounts'`, `'badge'`, ...) — yang terakhir dirender sebagai
+ * `<span class="material-symbols-outlined">`, jadi font-nya harus dimuat aplikasi.
+ */
+export type IconName = BuiltinIcon | (string & {});
+
+export function isBuiltinIcon(name: string): name is BuiltinIcon {
+  return Object.prototype.hasOwnProperty.call(iconPaths, name);
+}

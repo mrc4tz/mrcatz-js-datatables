@@ -1,3 +1,4 @@
+import type { Tone } from './columns';
 import type { IconName } from './icons';
 
 /** Satu baris label–nilai di `<MrcExpandFields>`. */
@@ -14,4 +15,6 @@ export interface ExpandField {
   newTab?: boolean;
   download?: boolean;
   span?: 1 | 2 | 3;
+  /** Warna tombol tautan. Default `primary`. */
+  tone?: Tone;
 }

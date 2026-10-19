@@ -5,7 +5,7 @@
  */
 import { getPath } from '@mrcatz/datatable-core';
 import { useMrcatz } from '../config';
-import { resolveImageUrl } from '../columns';
+import { resolveImageUrl, TONE_BTN } from '../columns';
 import type { ExpandField } from '../expand';
 import MrcIcon from './MrcIcon.vue';
 import MrcImage from './table/MrcImage.vue';
@@ -32,7 +32,8 @@ const spans = { 1: '', 2: 'sm:col-span-2', 3: 'sm:col-span-3' };
         <a
           v-else-if="f.type === 'link'"
           :href="f.href?.(row) ?? String(val(row, f) ?? '#')"
-          class="btn btn-xs btn-primary btn-soft"
+          :class="[TONE_BTN[f.tone ?? 'primary'], 'btn-soft']"
+          class="btn btn-xs"
           :target="f.newTab ? '_blank' : undefined"
           :rel="f.newTab ? 'noopener noreferrer' : undefined"
           :download="f.download || undefined"

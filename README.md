@@ -17,7 +17,8 @@ DataTable + Form Builder + CRUD untuk stack **NestJS + Prisma** di server dan **
 - State tabel tersinkron ke **URL** (bisa dibagikan/di-bookmark), namespace per tabel
 - **Inline edit** dengan validasi, **aksi massal** (konfirmasi / form), **baris expand**, **navigasi keyboard**
 - Pagination bernomor atau **load more**, **kartu responsif** di mobile, skeleton, empty state
-- **Form Builder** 25+ tipe field, kondisi tampil, opsi dinamis, validasi bawaan + [Standard Schema](https://standardschema.dev) (zod/valibot)
+- **Form Builder** 25+ tipe field (termasuk tombol aksi & foto dengan unggah/hapus), section berbentuk kartu, kondisi tampil, opsi dinamis, validasi bawaan + [Standard Schema](https://standardschema.dev) (zod/valibot)
+- **Form mandiri** di luar modal (`<MrcFormPage>`) & **breadcrumb** (`<MrcBreadcrumbs>`), ikon Material Symbols
 - Export **CSV** (aman dari formula injection) & **PDF/cetak**, cakupan sesuai filter / semua / terpilih
 - i18n Bahasa Indonesia (default) & Inggris, notifikasi bisa diarahkan ke toast aplikasi
 
@@ -264,8 +265,18 @@ dan **handler `on*`/event** untuk aksi pengguna.
 | `->dependsOn()` / `->onChange()` | `dependsOn: [...]` / `onChange(value, values)` |
 | `->withConfirmation()` | `confirm: true` |
 | `->withoutShowHide()` / `->withoutGenerate()` | `reveal: false` / `generate: false` |
+| `MrCatzFormField::section()->asCard()` | `field.section(judul, { card: true })` |
+| `MrCatzFormField::button(..., onClick:)->withLoading()` | `field.button(label, { icon, tone, onClick: async (ctx) => ... })` |
+| `MrCatzFormField::image()->preview()->onUpload()->onDelete()` | `field.image(name, label, { preview, onUpload, onDelete, deleteConfirm })` |
+| `->hint($teks, 'success')` | `hint`, `hintTone: 'success'` |
+| `->rowSpan(4)` / `->mobileOrder(-1)` | `rowSpan: 4` / `mobileOrder: -1` |
+| `form-standalone.blade.php` | `<MrcFormPage :submit="..." button-card />` |
+| `breadcrumbs.blade.php` + `$breadcrumbs` | `<MrcBreadcrumbs :items="[{ title, to }]" />` |
+| `mrcatz_icon('nama')` (Material) | `<MrcIcon name="nama" />` — ikon bawaan SVG, nama lain = Material Symbols |
 | `rules: 'required\|min:8'` | `required`, `minLength`, `validate`, atau `schema` (zod/valibot) |
 | `MrCatzEvent::*` (event Livewire) | prop/handler biasa — tidak ada event global |
+
+> Contoh aplikasi lengkap (NestJS + Nuxt, setara `mrcatz-laravel-template`): **mrcatz-js-template**.
 
 ## Pengembangan
 

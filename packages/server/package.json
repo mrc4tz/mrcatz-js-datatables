@@ -51,6 +51,13 @@
       }
     }
   },
+  "typesVersions": {
+    "*": {
+      "nest": [
+        "./dist/nest.d.ts"
+      ]
+    }
+  },
   "files": [
     "dist",
     "README.md",

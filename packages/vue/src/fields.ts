@@ -9,7 +9,17 @@ export type FieldType =
   | 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search'
   | 'textarea' | 'select' | 'radio' | 'checkbox' | 'toggle' | 'tags'
   | 'date' | 'time' | 'datetime' | 'month' | 'year' | 'color' | 'range' | 'file' | 'hidden'
-  | 'section' | 'note' | 'alert' | 'divider' | 'slot';
+  | 'section' | 'note' | 'alert' | 'divider' | 'slot' | 'button' | 'image';
+
+export type HintTone = 'success' | 'error' | 'warning' | 'info';
+
+/** Konteks untuk handler tombol & gambar: baca/ubah nilai dan error form. */
+export interface FieldActionContext {
+  values: FormValues;
+  set: (name: string, value: unknown) => void;
+  setError: (name: string, message: string) => void;
+  clearError: (name: string) => void;
+}
 
 export interface FieldOption {
   value: string | number | boolean;
@@ -23,7 +33,9 @@ export interface FieldDef {
   label?: string;
   placeholder?: string;
   /** Teks bantuan di bawah input. */
-  hint?: string;
+  hint?: string | null;
+  /** Warna hint (mis. `success` untuk "✓ Username tersedia"). Default abu-abu. */
+  hintTone?: HintTone;
   icon?: IconName;
   prefix?: string;
   suffix?: string;
@@ -35,6 +47,10 @@ export interface FieldDef {
   visibleWhen?: Record<string, unknown> | ((values: FormValues) => boolean);
   /** Lebar kolom dari 12 (grid). Default 12. */
   span?: number;
+  /** Jumlah baris grid yang ditempati (mis. foto di samping beberapa input). */
+  rowSpan?: number;
+  /** Urutan di layar kecil (CSS `order`), mis. `-1` agar foto tampil paling atas. */
+  mobileOrder?: number;
   /** Validasi kustom: kembalikan pesan error, atau `true`/`undefined` bila valid. */
   validate?: (value: any, values: FormValues) => string | true | undefined | Promise<string | true | undefined>;
   defaultValue?: unknown;
@@ -61,6 +77,26 @@ export interface FieldDef {
   /** section/note/alert/divider */
   text?: string;
   tone?: Tone;
+  /** Section: mulai kartu baru berjudul (pengganti `->asCard()`). */
+  card?: boolean;
+
+  /** Tombol: aksi saat diklik; spinner tampil selama Promise berjalan (pengganti `onClick` + `withLoading`). */
+  onClick?: (ctx: FieldActionContext) => unknown;
+
+  /** Gambar: URL pratinjau saat ini. */
+  preview?: string | null;
+  previewSize?: number;
+  previewClass?: string;
+  /** Gambar: teks untuk inisial bila belum ada foto. */
+  fallback?: string;
+  /** Gambar: unggah berkas terpilih (pengganti `onUpload`). */
+  onUpload?: (file: File, ctx: FieldActionContext) => unknown;
+  /** Gambar: hapus foto (pengganti `onDelete`). */
+  onDelete?: (ctx: FieldActionContext) => unknown;
+  /** Gambar: teks konfirmasi sebelum menghapus. */
+  deleteConfirm?: string;
+  /** Gambar/berkas: ukuran maksimum dalam byte. */
+  maxSize?: number;
 }
 
 type Opts = Omit<FieldDef, 'type' | 'name' | 'label'>;
@@ -109,13 +145,30 @@ export const field = {
   /** Area bebas lewat slot `#field-{name}`. */
   slot: make('slot'),
 
-  section: (title: string, text?: string): FieldDef => ({ type: 'section', label: title, text }),
+  /** Tombol aksi (mis. cek ketersediaan username). Label boleh kosong untuk tombol ikon. */
+  button: (label: string, opts: Opts = {}): FieldDef => ({ type: 'button', label, tone: 'primary', ...opts }),
+  /** Foto dengan pratinjau, unggah, dan hapus (mis. avatar). */
+  image: (name: string, label?: string, opts: Opts = {}): FieldDef => ({
+    type: 'image',
+    name,
+    label,
+    accept: 'image/png,image/jpeg,image/webp',
+    ...opts,
+  }),
+
+  /** Judul bagian; `{ card: true }` memulai kartu baru (pengganti `->asCard()`). */
+  section: (title: string, opts: string | { text?: string; card?: boolean } = {}): FieldDef => ({
+    type: 'section',
+    label: title,
+    ...(typeof opts === 'string' ? { text: opts } : opts),
+  }),
   note: (text: string): FieldDef => ({ type: 'note', text }),
   alert: (text: string, tone: Tone = 'info'): FieldDef => ({ type: 'alert', text, tone }),
   divider: (text?: string): FieldDef => ({ type: 'divider', text }),
 };
 
-export const STATIC_FIELDS: FieldType[] = ['section', 'note', 'alert', 'divider'];
+/** Tipe yang tidak menyimpan nilai di objek form. */
+export const STATIC_FIELDS: FieldType[] = ['section', 'note', 'alert', 'divider', 'button', 'image'];
 
 export function isInput(f: FieldDef): f is FieldDef & { name: string } {
   return !!f.name && !STATIC_FIELDS.includes(f.type);

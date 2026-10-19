@@ -13,6 +13,8 @@ import MrcIcon from './components/MrcIcon.vue';
 import MrcToaster from './components/MrcToaster.vue';
 import MrcExpandFields from './components/MrcExpandFields.vue';
 import MrcImage from './components/table/MrcImage.vue';
+import MrcBreadcrumbs from './components/MrcBreadcrumbs.vue';
+import MrcFormPage from './components/form/MrcFormPage.vue';
 
 export {
   MrcDataTable,
@@ -28,6 +30,8 @@ export {
   MrcToaster,
   MrcExpandFields,
   MrcImage,
+  MrcBreadcrumbs,
+  MrcFormPage,
 };
 
 export const components = {
@@ -42,6 +46,8 @@ export const components = {
   MrcToaster,
   MrcExpandFields,
   MrcImage,
+  MrcBreadcrumbs,
+  MrcFormPage,
 };
 
 /**
@@ -65,13 +71,14 @@ export function createMrcatz(opts: MrcatzOptions & { registerComponents?: boolea
 export { useMrcatz, pushToast, MRCATZ_KEY, type MrcatzOptions, type NotifyFn, type NotifyType } from './config';
 export { id as messagesId, en as messagesEn, type Messages, type MessageKey } from './i18n';
 export { col, TONE_BTN, cellValue, displayValue, type ColumnDef, type CellContext, type Tone, type RowAction, type ActionsConfig, type InlineEditConfig } from './columns';
-export { field, initialValues, isVisible, type FieldDef, type FieldType, type FieldOption, type FormValues, type CrudMode } from './fields';
+export { field, initialValues, isVisible, type FieldDef, type FieldType, type FieldOption, type FormValues, type CrudMode, type FieldActionContext, type HintTone } from './fields';
+export type { BreadcrumbItem } from './types';
 export { bulkAction, type BulkAction } from './bulk';
 export type { ExpandField } from './expand';
 export { httpSource, memorySource, staticFilters, unwrapPage, type DataSource, type Fetcher, type HttpSourceOptions } from './sources';
 export { useDataTable, type DataTableController, type UseDataTableOptions, type PaginationMode } from './composables/useDataTable';
 export { MrcFormError, validateFields, errorMessage, type FormErrors, type StandardSchema } from './validation';
 export { buildExportTable, downloadCsv, printTable, type ExportFormat, type ExportScope } from './export';
-export type { IconName } from './icons';
+export { isBuiltinIcon, type IconName, type BuiltinIcon } from './icons';
 // Re-export dari core agar halaman cukup mengimpor satu paket.
 export { filter, highlight, type FilterDefinition, type FilterSchema, type TableQuery, type TablePage, type SortRule } from '@mrcatz/datatable-core';
