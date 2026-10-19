@@ -26,7 +26,11 @@
   "publishConfig": {
     "access": "public"
   },
-  "sideEffects": false,
+  "sideEffects": [
+    "./dist/editor.js",
+    "./dist/editor-advanced.js",
+    "./dist/map.js"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -35,6 +39,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./editor": {
+      "types": "./dist/editor.d.ts",
+      "default": "./dist/editor.js"
+    },
+    "./editor-advanced": {
+      "types": "./dist/editor-advanced.d.ts",
+      "default": "./dist/editor-advanced.js"
+    },
+    "./map": {
+      "types": "./dist/map.d.ts",
+      "default": "./dist/map.js"
     }
   },
   "files": [
@@ -53,11 +69,31 @@
   "peerDependencies": {
     "@tanstack/vue-query": ">=5",
     "vue": ">=3.5",
-    "vue-router": ">=4"
+    "vue-router": ">=4",
+    "quill": ">=2",
+    "tinymce": ">=7",
+    "leaflet": ">=1.9",
+    "tailwindcss": ">=4",
+    "daisyui": ">=5"
   },
   "peerDependenciesMeta": {
     "vue-router": {
       "optional": true
+    },
+    "quill": {
+      "optional": true
+    },
+    "tinymce": {
+      "optional": true
+    },
+    "leaflet": {
+      "optional": true
     }
+  },
+  "devDependencies": {
+    "@types/leaflet": "^1.9.22",
+    "leaflet": "^1.9.4",
+    "quill": "^2.0.3",
+    "tinymce": "^7.9.3"
   }
 }

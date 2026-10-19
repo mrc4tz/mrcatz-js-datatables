@@ -9,9 +9,17 @@ export function inputType(format: DateFormat | undefined): string {
       return 'month';
     case 'year':
       return 'number';
+    case 'time':
+    case 'timeHm':
+      return 'time';
     default:
       return 'date';
   }
+}
+
+/** Atribut `step` untuk input: detik hanya untuk format `time`. */
+export function inputStep(format: DateFormat | undefined): number | undefined {
+  return format === 'time' ? 1 : undefined;
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -51,8 +59,37 @@ export function presetRange(preset: RangePreset, now = new Date()): RangeValue {
   }
 }
 
+/** Preset yang masuk akal per format (mis. "Hari ini" tidak berarti untuk format tahun). */
+export function presetsFor(format: DateFormat | undefined): RangePreset[] {
+  switch (format) {
+    case undefined:
+    case 'date':
+    case 'datetime':
+      return RANGE_PRESETS;
+    case 'month':
+      return ['thisMonth', 'last6m', 'thisYear', 'lastYear'];
+    case 'year':
+      return ['thisYear', 'lastYear'];
+    default:
+      return []; // format jam: tidak ada preset
+  }
+}
+
+/** Ubah rentang preset (YYYY-MM-DD) ke bentuk nilai yang diterima format filter. */
+export function presetRangeFor(preset: RangePreset, format: DateFormat | undefined, now = new Date()): RangeValue {
+  const r = presetRange(preset, now);
+  const conv = (v: string | null | undefined, end: boolean) => {
+    if (!v) return v ?? null;
+    if (format === 'month') return v.slice(0, 7);
+    if (format === 'year') return v.slice(0, 4);
+    if (format === 'datetime') return `${v}T${end ? '23:59' : '00:00'}`;
+    return v;
+  };
+  return { from: conv(r.from, false), to: conv(r.to, true) };
+}
+
 export function formatDateValue(value: string, format: DateFormat | undefined, locale: string): string {
-  if (format === 'year') return value;
+  if (format === 'year' || format === 'time' || format === 'timeHm') return value;
   const d = new Date(format === 'month' ? `${value}-01T00:00` : value.length === 10 ? `${value}T00:00` : value);
   if (Number.isNaN(d.getTime())) return value;
   const opts: Intl.DateTimeFormatOptions =

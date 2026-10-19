@@ -1,5 +1,7 @@
 import {
   compareBounds,
+  dateOperator,
+  isTimeFormat,
   periodOf,
   rangeBounds,
   splitKeywords,
@@ -12,7 +14,7 @@ import {
   type SortRule,
   type UtcOffset,
 } from '@mrcatz/datatable-core';
-import { DataTableQueryError } from './errors';
+import { DataTableConfigError, DataTableQueryError } from './errors';
 
 /** Potongan `where` Prisma. Sengaja longgar agar bekerja dengan model apa pun. */
 export type Where = Record<string, unknown>;
@@ -59,6 +61,9 @@ export function filterWhere(
   if (def.where) return (def.where as (v: unknown, c: FilterContext) => Where | undefined)(value, ctx);
   if (!def.field) return undefined;
   const field = def.field;
+  if ((def.type === 'date' || def.type === 'dateRange') && isTimeFormat(def.format)) {
+    throw new DataTableConfigError(timeFormatMessage(def.id));
+  }
 
   switch (def.type) {
     case 'select': {
@@ -81,7 +86,7 @@ export function filterWhere(
       return withDateGuard(() => {
         const bounds = compareBounds(
           periodOf(value as string, def.format ?? 'date', o.utcOffset),
-          def.operator ?? '=',
+          dateOperator(def as FilterDefinition, ctx),
         );
         return 'not' in bounds
           ? { NOT: nest(field, { gte: bounds.not.start, lt: bounds.not.end }) }
@@ -93,6 +98,14 @@ export function filterWhere(
         return nest(field, rangeBounds(from, to, def.format ?? 'date', o.utcOffset));
       });
   }
+}
+
+export function timeFormatMessage(id: string): string {
+  return (
+    `Filter "${id}" memakai format jam (time/timeHm): Prisma tidak bisa membandingkan jam dari kolom tanggal ` +
+    'secara portabel. Isi `where`, mis. `where: (v) => ({ jam: compareBounds(periodOf(v, \'timeHm\'), \'=\') })` ' +
+    'untuk kolom `@db.Time`, atau `parseTimeOfDay(v)` untuk kolom detik.'
+  );
 }
 
 /** Kondisi pencarian berbasis Prisma (tanpa SQL mentah). */

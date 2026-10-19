@@ -1,11 +1,31 @@
 <script setup lang="ts">
 /** Panel filter yang dibuka dari tombol filter di toolbar (pengganti `#dtFilter`). */
-import { computed } from 'vue';
+import { computed, onBeforeUnmount } from 'vue';
+import type { FilterSchema, FilterValue } from '@mrcatz/datatable-core';
 import type { DataTableController } from '../../composables/useDataTable';
 import FilterField from './FilterField.vue';
 
-const props = defineProps<{ table: DataTableController<any> }>();
+const props = defineProps<{
+  table: DataTableController<any>;
+  /** Jeda (ms) sebelum perubahan filter select/tanggal diterapkan (pengganti `$filterDebounceDelay`). */
+  debounce?: number;
+}>();
 const visibleFilters = computed(() => props.table.filters.value.filter((f) => f.visible));
+
+// Multi & rentang tanggal sudah punya tombol Terapkan → langsung; select/tanggal di-debounce.
+const timers = new Map<string, ReturnType<typeof setTimeout>>();
+function change(f: FilterSchema, value: FilterValue | undefined) {
+  clearTimeout(timers.get(f.id));
+  if (!props.debounce || f.type === 'multi' || f.type === 'dateRange') return props.table.setFilter(f.id, value);
+  timers.set(
+    f.id,
+    setTimeout(() => {
+      timers.delete(f.id);
+      props.table.setFilter(f.id, value);
+    }, props.debounce),
+  );
+}
+onBeforeUnmount(() => timers.forEach((t) => clearTimeout(t)));
 </script>
 
 <template>
@@ -17,7 +37,7 @@ const visibleFilters = computed(() => props.table.filters.value.filter((f) => f.
         :filter="f"
         :value="table.state.filters[f.id]"
         :loading="table.filtersLoading.value"
-        @change="table.setFilter(f.id, $event)"
+        @change="change(f, $event)"
       />
     </div>
   </div>

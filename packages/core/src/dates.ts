@@ -9,6 +9,12 @@ import type { CompareOperator, DateFormat } from './types';
  *   'month'    → '2026-10'              → satu bulan penuh
  *   'year'     → '2026'                 → satu tahun penuh
  *   'datetime' → '2026-10-19T08:30'     → satu menit penuh
+ *   'time'     → '08:30:15'             → satu detik (atau satu menit bila tanpa detik)
+ *   'timeHm'   → '08:30'                → satu menit penuh
+ *
+ * Format jam (`time` / `timeHm`) tidak terikat tanggal: periodenya berada di
+ * 1970-01-01 UTC — sama dengan cara Prisma merepresentasikan kolom `@db.Time`,
+ * sehingga hasilnya bisa langsung dipakai di `where` untuk kolom jam.
  */
 
 export interface Period {
@@ -46,11 +52,59 @@ function makeDate(
   return new Date(Date.UTC(y, mo, d, h, mi) - offsetMinutes(offset) * 60_000);
 }
 
+/** `true` untuk format jam dalam sehari (`time` / `timeHm`). */
+export function isTimeFormat(format: DateFormat | undefined): format is 'time' | 'timeHm' {
+  return format === 'time' || format === 'timeHm';
+}
+
+const TIME_RE = /^(\d{2}):(\d{2})(?::(\d{2}))?$/;
+
+/**
+ * Ubah `'HH:mm'` / `'HH:mm:ss'` menjadi jumlah detik sejak tengah malam.
+ * Berguna untuk `where` kustom pada filter jam.
+ *
+ * @example parseTimeOfDay('14:30') // 52200
+ */
+export function parseTimeOfDay(value: string): number {
+  const m = TIME_RE.exec(value.trim());
+  const [h, mi, se] = m ? [Number(m[1]), Number(m[2]), Number(m[3] ?? 0)] : [NaN, NaN, NaN];
+  if (!m || h > 23 || mi > 59 || se > 59) {
+    throw new InvalidDateValueError(`Nilai "${value}" bukan jam yang valid (HH:mm atau HH:mm:ss).`);
+  }
+  return h * 3600 + mi * 60 + se;
+}
+
+/**
+ * Jam dalam sehari dari sebuah tanggal (di zona `offset`), dalam bentuk Date
+ * 1970-01-01 UTC agar bisa dibandingkan dengan periode format jam.
+ */
+export function timeOfDay(date: Date, offset?: UtcOffset): Date {
+  const seconds =
+    offset === undefined
+      ? date.getHours() * 3600 + date.getMinutes() * 60 + date.getSeconds()
+      : (() => {
+          const shifted = new Date(date.getTime() + offsetMinutes(offset) * 60_000);
+          return shifted.getUTCHours() * 3600 + shifted.getUTCMinutes() * 60 + shifted.getUTCSeconds();
+        })();
+  return new Date(seconds * 1000 + date.getMilliseconds());
+}
+
+function timePeriod(value: string, format: 'time' | 'timeHm'): Period {
+  const seconds = parseTimeOfDay(value);
+  // `timeHm` selalu satu menit; `time` tanpa detik juga dianggap satu menit.
+  const perMinute = format === 'timeHm' || !/:\d{2}:\d{2}$/.test(value.trim());
+  const start = perMinute ? seconds - (seconds % 60) : seconds;
+  return { start: new Date(start * 1000), end: new Date((start + (perMinute ? 60 : 1)) * 1000) };
+}
+
 export function periodOf(value: string, format: DateFormat, offset?: UtcOffset): Period {
   const v = value.trim();
   let m: RegExpExecArray | null;
 
   switch (format) {
+    case 'time':
+    case 'timeHm':
+      return timePeriod(v, format);
     case 'year':
       if ((m = /^(\d{4})$/.exec(v))) {
         const y = Number(m[1]);

@@ -1,5 +1,15 @@
-import { compareBounds, inBounds, periodOf, rangeBounds, type UtcOffset } from './dates';
 import {
+  compareBounds,
+  inBounds,
+  isTimeFormat,
+  parseTimeOfDay,
+  periodOf,
+  rangeBounds,
+  timeOfDay,
+  type UtcOffset,
+} from './dates';
+import {
+  dateOperator,
   describeFilters,
   resolveFilterValue,
   type FilterDefinition,
@@ -9,6 +19,7 @@ import { getPath, normalizeSearch, type NormalizedSearch, type SearchConfig } fr
 import { splitKeywords, trigrams } from './search';
 import type {
   CompareOperator,
+  DateFormat,
   FilterContext,
   SortRule,
   TablePage,
@@ -101,7 +112,23 @@ export function createMemoryTable<TRow>(rows: TRow[] | (() => TRow[]), opts: Mem
   const defs = opts.filters ?? [];
   const getRows = typeof rows === 'function' ? rows : () => rows;
 
-  function applyFilter(row: TRow, def: FilterDefinition<unknown, TRow>, value: ResolvedValue<any>): boolean {
+  /** Nilai sel sebagai Date; untuk format jam diubah ke jam-dalam-sehari (1970-01-01 UTC). */
+  function cellDate(cell: unknown, format: DateFormat | undefined): Date | null {
+    if (!isTimeFormat(format)) return toDate(cell);
+    // Kolom jam murni ('14:30' / '14:30:15') dibaca apa adanya, tanpa zona waktu.
+    if (typeof cell === 'string' && /^\d{2}:\d{2}(:\d{2})?$/.test(cell.trim())) {
+      return new Date(parseTimeOfDay(cell) * 1000);
+    }
+    const d = toDate(cell);
+    return d ? timeOfDay(d, opts.utcOffset) : null;
+  }
+
+  function applyFilter(
+    row: TRow,
+    def: FilterDefinition<unknown, TRow>,
+    value: ResolvedValue<any>,
+    ctx: FilterContext,
+  ): boolean {
     if (def.match) return (def.match as (r: TRow, v: unknown) => boolean)(row, value);
     if (!def.field) return true;
     const cell = getPath(row, def.field);
@@ -115,13 +142,16 @@ export function createMemoryTable<TRow>(rows: TRow[] | (() => TRow[]), opts: Mem
         return exclude ? !hit : hit;
       }
       case 'date': {
-        const d = toDate(cell);
+        const d = cellDate(cell, def.format);
         if (!d) return false;
-        const bounds = compareBounds(periodOf(value as string, def.format ?? 'date', opts.utcOffset), def.operator ?? '=');
+        const bounds = compareBounds(
+          periodOf(value as string, def.format ?? 'date', opts.utcOffset),
+          dateOperator(def as FilterDefinition, ctx),
+        );
         return inBounds(d, bounds);
       }
       case 'dateRange': {
-        const d = toDate(cell);
+        const d = cellDate(cell, def.format);
         if (!d) return false;
         const { from, to } = value as ResolvedValue<'dateRange'>;
         return inBounds(d, rangeBounds(from, to, def.format ?? 'date', opts.utcOffset));
@@ -135,9 +165,10 @@ export function createMemoryTable<TRow>(rows: TRow[] | (() => TRow[]), opts: Mem
       .map((def) => ({ def, value: resolveFilterValue(def, query.filters[def.id]) }))
       .filter((x) => x.value !== undefined);
 
+    const ctx: FilterContext = { values: query.filters };
     const out: Array<{ row: TRow; score: number }> = [];
     for (const row of getRows()) {
-      if (!active.every(({ def, value }) => applyFilter(row, def, value!))) continue;
+      if (!active.every(({ def, value }) => applyFilter(row, def, value!, ctx))) continue;
       if (words.length && search.columns.length) {
         const hit =
           search.match === 'all'

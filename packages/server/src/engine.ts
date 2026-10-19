@@ -1,5 +1,6 @@
 import {
   describeFilters,
+  isTimeFormat,
   normalizeSearch,
   parseTableQuery,
   resolveFilterValue,
@@ -16,13 +17,14 @@ import {
   type UtcOffset,
 } from '@mrcatz/datatable-core';
 import { DataTableConfigError } from './errors';
-import { and, filterWhere, orderBy, searchWhere, type Where } from './prisma-where';
+import { and, filterWhere, orderBy, searchWhere, timeFormatMessage, type Where } from './prisma-where';
 import {
   buildRelevanceSql,
   validateRelevance,
   type RawExecutor,
   type RelevanceConfig,
 } from './relevance';
+import type { ActiveFilter, SearchDriver } from './search-driver';
 
 /** Bagian delegate Prisma yang dipakai engine (`prisma.user`, `prisma.laporan`, ...). */
 export interface PrismaDelegate<TRow> {
@@ -45,6 +47,12 @@ export interface DataTableDefinition<TRow, TCtx> {
   search?: SearchConfig & {
     /** Urutkan hasil pencarian berdasarkan skor relevansi (PostgreSQL). */
     relevance?: RelevanceConfig & { db: RawExecutor };
+    /**
+     * Mesin pencari eksternal (pengganti `driver => 'scout'`), mis.
+     * `meilisearchDriver(...)` dari `@mrcatz/datatable-server/meilisearch`.
+     * Tidak bisa digabung dengan `relevance`.
+     */
+    driver?: SearchDriver<TCtx>;
   };
   filters?: FilterDefinition<Where, TRow>[];
 
@@ -98,17 +106,34 @@ export interface QueryOptions<TCtx> {
 export function defineDataTable<TRow, TCtx = undefined>(def: DataTableDefinition<TRow, TCtx>) {
   const search = normalizeSearch(def.search);
   const relevance = def.search?.relevance;
+  const driver = def.search?.driver;
   if (relevance) validateRelevance(relevance, search);
+  if (relevance && driver) {
+    throw new DataTableConfigError(
+      `search.relevance dan search.driver ("${driver.name}") tidak bisa dipakai bersamaan — pilih salah satu.`,
+    );
+  }
+  if (search.typo.driver === 'pg_trgm' && !relevance) {
+    throw new DataTableConfigError(
+      "typoTolerance.driver 'pg_trgm' hanya bekerja bersama search.relevance (SQL mentah PostgreSQL). " +
+        "Tambahkan `search.relevance` atau pakai `typoTolerance: { driver: 'trigram' }`.",
+    );
+  }
 
   const filters = def.filters ?? [];
   const ids = new Set<string>();
   for (const f of filters) {
     if (ids.has(f.id)) throw new DataTableConfigError(`Id filter duplikat: "${f.id}"`);
     ids.add(f.id);
+    // Format jam berbasis `field` tidak bisa diterjemahkan ke Prisma secara portabel.
+    if ((f.type === 'date' || f.type === 'dateRange') && isTimeFormat(f.format) && !f.where) {
+      throw new DataTableConfigError(timeFormatMessage(f.id));
+    }
   }
 
   const pk = def.primaryKey ?? relevance?.primaryKey ?? 'id';
   const sortable = def.sortable ? new Set(def.sortable) : null;
+  driver?.validate?.({ search, filters, sortable: def.sortable ?? null, primaryKey: pk });
   const tiebreaker = def.tiebreaker === false ? [] : (def.tiebreaker ?? [{ key: pk, dir: 'asc' as const }]);
   const whereOpts = { insensitive: def.caseInsensitive ?? true, utcOffset: def.utcOffset };
   const filterTypes = Object.fromEntries(filters.map((f) => [f.id, f.type])) as Record<string, FilterType>;
@@ -130,11 +155,20 @@ export function defineDataTable<TRow, TCtx = undefined>(def: DataTableDefinition
     return { values: q.filters as Record<string, FilterValue | undefined> };
   }
 
-  /** where gabungan: dasar + filter (+ pencarian bila `withSearch`). */
-  function buildWhere(q: TableQuery, ctx: TCtx, withSearch: boolean): Where | undefined {
+  /**
+   * where gabungan: dasar + filter (+ pencarian bila `withSearch`).
+   * `skip` = id filter yang sudah diterapkan search driver (pushdown).
+   */
+  function buildWhere(
+    q: TableQuery,
+    ctx: TCtx,
+    withSearch: boolean,
+    skip?: ReadonlySet<string>,
+  ): Where | undefined {
     const base = typeof def.baseWhere === 'function' ? def.baseWhere(ctx) : def.baseWhere;
     const fctx = filterCtx(q);
     const parts = filters.map((f) => {
+      if (skip?.has(f.id)) return undefined;
       const value = resolveFilterValue(f, q.filters[f.id]);
       return value === undefined ? undefined : filterWhere(f, value, fctx, whereOpts);
     });
@@ -163,22 +197,42 @@ export function defineDataTable<TRow, TCtx = undefined>(def: DataTableDefinition
     };
   }
 
-  async function runRelevance(q: TableQuery, ctx: TCtx): Promise<TablePage<TRow> | null> {
-    if (!relevance || !q.search || q.sort.length) return null;
-    const built = buildRelevanceSql(q.search, relevance, search);
-    if (!built) return null;
+  /**
+   * Pipeline bersama mode relevansi & search driver: id terurut peringkat →
+   * filter Prisma (`pk in ids`) → urutkan ulang sesuai peringkat → paginate.
+   * Bila pengguna memilih sort, id hanya dipakai sebagai filter dan urutan
+   * mengikuti sort pengguna.
+   */
+  async function rankedPage(
+    q: TableQuery,
+    ctx: TCtx,
+    rankedIds: unknown[],
+    skip?: ReadonlySet<string>,
+  ): Promise<TablePage<TRow>> {
+    const where = and([buildWhere(q, ctx, false, skip), { [pk]: { in: rankedIds } }]);
 
-    const scored = (await relevance.db.$queryRawUnsafe(built.sql, ...built.params)) as Array<{
-      id: unknown;
-      score: unknown;
-    }>;
-    const score = new Map(scored.map((r) => [String(r.id), Number(r.score)]));
-    const where = and([buildWhere(q, ctx, false), { [pk]: { in: scored.map((r) => r.id) } }]);
+    if (q.sort.length) {
+      const [data, total] = await Promise.all([
+        def.model.findMany({
+          where,
+          orderBy: buildOrder(q),
+          skip: (q.page - 1) * q.limit,
+          take: q.limit,
+          ...shape,
+        }),
+        def.model.count({ where }),
+      ]);
+      return { data, meta: meta(q, total) };
+    }
+
+    const rank = new Map<string, number>();
+    rankedIds.forEach((id, i) => {
+      if (!rank.has(String(id))) rank.set(String(id), i);
+    });
+    const at = (id: unknown) => rank.get(String(id)) ?? Number.MAX_SAFE_INTEGER;
 
     const matching = (await def.model.findMany({ where, select: { [pk]: true } })) as Array<Record<string, unknown>>;
-    const orderedIds = matching
-      .map((r) => r[pk])
-      .sort((a, b) => (score.get(String(b)) ?? 0) - (score.get(String(a)) ?? 0));
+    const orderedIds = matching.map((r) => r[pk]).sort((a, b) => at(a) - at(b));
 
     const pageIds = orderedIds.slice((q.page - 1) * q.limit, q.page * q.limit);
     const rows = pageIds.length
@@ -193,8 +247,46 @@ export function defineDataTable<TRow, TCtx = undefined>(def: DataTableDefinition
     return { data: rows, meta: meta(q, orderedIds.length) };
   }
 
+  async function runRelevance(q: TableQuery, ctx: TCtx): Promise<TablePage<TRow> | null> {
+    if (!relevance || !q.search || q.sort.length) return null;
+    const built = buildRelevanceSql(q.search, relevance, search);
+    if (!built) return null;
+
+    const scored = (await relevance.db.$queryRawUnsafe(built.sql, ...built.params)) as Array<{
+      id: unknown;
+      score: unknown;
+    }>;
+    // Urutan stabil berdasarkan skor (SQL sudah ORDER BY score, ini pengaman).
+    const ranked = scored
+      .map((r, i) => ({ id: r.id, score: Number(r.score), i }))
+      .sort((a, b) => b.score - a.score || a.i - b.i)
+      .map((r) => r.id);
+    return rankedPage(q, ctx, ranked);
+  }
+
+  async function runDriver(q: TableQuery, ctx: TCtx): Promise<TablePage<TRow> | null> {
+    if (!driver || !q.search.trim()) return null;
+    const fctx = filterCtx(q);
+    const active: ActiveFilter[] = [];
+    for (const f of filters) {
+      const value = resolveFilterValue(f, q.filters[f.id]);
+      if (value !== undefined) active.push({ def: f, value });
+    }
+    const result = await driver.search({
+      search: q.search,
+      query: q,
+      filters: active,
+      filterContext: fctx,
+      context: ctx,
+      primaryKey: pk,
+      utcOffset: def.utcOffset,
+    });
+    if (!result) return null;
+    return rankedPage(q, ctx, result.ids, new Set(result.pushedFilters ?? []));
+  }
+
   async function run(q: TableQuery, ctx: TCtx): Promise<TablePage<TRow>> {
-    const ranked = await runRelevance(q, ctx);
+    const ranked = (await runDriver(q, ctx)) ?? (await runRelevance(q, ctx));
     if (ranked) return ranked;
 
     // Mode relevansi tetap memakai pencarian Prisma bila pengguna mengurutkan kolom.
@@ -213,6 +305,15 @@ export function defineDataTable<TRow, TCtx = undefined>(def: DataTableDefinition
   }
 
   return {
+    /** Ringkasan konfigurasi (dipakai helper seperti `syncMeilisearchSettings`). */
+    config: {
+      search,
+      filters: filters as FilterDefinition<Where>[],
+      sortable: def.sortable ?? null,
+      primaryKey: pk,
+      driver: driver as SearchDriver | undefined,
+    },
+
     /** Parse query mentah (`req.query` / URLSearchParams) menjadi `TableQuery` tervalidasi. */
     parse: (raw: RawQuery | TableQuery) => parse(raw),
 
@@ -233,7 +334,10 @@ export function defineDataTable<TRow, TCtx = undefined>(def: DataTableDefinition
       return { filters: await describeFilters(filters as FilterDefinition[], filterCtx(parse(raw))) };
     },
 
-    /** `where` Prisma yang sama dengan tabel — berguna untuk aksi massal "semua hasil filter". */
+    /**
+     * `where` Prisma yang sama dengan tabel — berguna untuk aksi massal "semua hasil filter".
+     * Catatan: pencarian di sini selalu versi Prisma (`contains`), bukan search driver/relevansi.
+     */
     where(raw: RawQuery | TableQuery, opts: QueryOptions<TCtx> = {}): Where | undefined {
       return buildWhere(parse(raw), opts.context as TCtx, true);
     },

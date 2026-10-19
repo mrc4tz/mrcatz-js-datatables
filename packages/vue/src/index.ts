@@ -15,6 +15,7 @@ import MrcExpandFields from './components/MrcExpandFields.vue';
 import MrcImage from './components/table/MrcImage.vue';
 import MrcBreadcrumbs from './components/MrcBreadcrumbs.vue';
 import MrcFormPage from './components/form/MrcFormPage.vue';
+import MrcConfigProvider from './components/MrcConfigProvider.vue';
 
 export {
   MrcDataTable,
@@ -32,6 +33,7 @@ export {
   MrcImage,
   MrcBreadcrumbs,
   MrcFormPage,
+  MrcConfigProvider,
 };
 
 export const components = {
@@ -48,6 +50,7 @@ export const components = {
   MrcImage,
   MrcBreadcrumbs,
   MrcFormPage,
+  MrcConfigProvider,
 };
 
 /**
@@ -68,9 +71,9 @@ export function createMrcatz(opts: MrcatzOptions & { registerComponents?: boolea
   };
 }
 
-export { useMrcatz, pushToast, openLightbox, MRCATZ_KEY, type MrcatzOptions, type NotifyFn, type NotifyType, type IconOptions, type CustomIcon } from './config';
+export { useMrcatz, createContext, pushToast, openLightbox, MRCATZ_KEY, type MrcatzOptions, type NotifyFn, type NotifyType, type IconOptions, type CustomIcon } from './config';
 export { id as messagesId, en as messagesEn, type Messages, type MessageKey } from './i18n';
-export { col, TONE_BTN, cellValue, displayValue, type ColumnDef, type CellContext, type Tone, type RowAction, type ActionsConfig, type InlineEditConfig } from './columns';
+export { col, TONE_BTN, cellValue, displayValue, resolveImageUrl, type ColumnDef, type CellContext, type Tone, type RowAction, type ActionsConfig, type InlineEditConfig } from './columns';
 export { field, initialValues, isVisible, type FieldDef, type FieldType, type FieldOption, type FormValues, type CrudMode, type FieldActionContext, type HintTone } from './fields';
 export type { BreadcrumbItem } from './types';
 export { bulkAction, type BulkAction } from './bulk';
@@ -78,7 +81,25 @@ export type { ExpandField } from './expand';
 export { httpSource, memorySource, staticFilters, unwrapPage, type DataSource, type Fetcher, type HttpSourceOptions } from './sources';
 export { useDataTable, type DataTableController, type UseDataTableOptions, type PaginationMode } from './composables/useDataTable';
 export { MrcFormError, validateFields, errorMessage, type FormErrors, type StandardSchema } from './validation';
-export { buildExportTable, downloadCsv, printTable, type ExportFormat, type ExportScope } from './export';
+export {
+  buildExportTable,
+  downloadCsv,
+  downloadXlsx,
+  printTable,
+  escapeHtml,
+  type ExportFormat,
+  type ExportScope,
+  type ExportOptions,
+  type ExportContext,
+  type ExportTable,
+  type PrintMeta,
+  type PrintTemplate,
+} from './export';
+export { buildXlsx, DEFAULT_EXPORT_COLORS, type ExportColors, type XlsxOptions } from './xlsx';
 export { isBuiltinIcon, type IconName, type BuiltinIcon, type IconSet } from './icons';
 // Re-export dari core agar halaman cukup mengimpor satu paket.
 export { filter, highlight, type FilterDefinition, type FilterSchema, type TableQuery, type TablePage, type SortRule } from '@mrcatz/datatable-core';
+// Form builder: tipe field tambahan, helper error server, renderer kustom.
+export { emptyValue, type FieldSize, type ValidationRule, type DateRangeValue, type LatLngValue, type MapRadiusOptions } from './fields';
+export { toFormError, withFormErrors, type FormErrorOptions } from './validation';
+export { registerFieldType } from './components/form/registry';

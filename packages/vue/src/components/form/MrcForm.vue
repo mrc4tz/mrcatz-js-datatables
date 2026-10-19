@@ -8,13 +8,21 @@
  * @example
  * <MrcForm ref="form" v-model="values" :fields="fields" @submit="save" />
  */
-import { computed, nextTick } from 'vue';
+import { computed, nextTick, onBeforeUnmount, watch } from 'vue';
 import { useMrcatz } from '../../config';
-import { isInput, isVisible, type FieldActionContext, type FieldDef, type FormValues } from '../../fields';
+import { emptyValue, isInput, isVisible, type FieldActionContext, type FieldDef, type FormValues } from '../../fields';
 import { validateFields, type FormErrors, type StandardSchema } from '../../validation';
 import MrcFormField from './MrcFormField.vue';
 
-const props = defineProps<{ fields: FieldDef[]; schema?: StandardSchema; readonly?: boolean }>();
+const props = defineProps<{
+  fields: FieldDef[];
+  schema?: StandardSchema;
+  readonly?: boolean;
+  /** Jarak antar-field (CSS), mis. `'1rem'` — pengganti `$formGap`. Default kelas `gap-4`. */
+  gap?: string;
+  /** Jarak antar-kolom (CSS), mis. `'1.5rem'` — pengganti `$formColumnGap`. Default sama dengan `gap`. */
+  columnGap?: string;
+}>();
 const values = defineModel<FormValues>({ required: true });
 const errors = defineModel<FormErrors>('errors', { default: () => ({}) });
 const emit = defineEmits<{ submit: [values: FormValues] }>();
@@ -80,12 +88,46 @@ function clearError(name: string) {
   commitErrors(rest);
 }
 
+// `onChange` dengan `onChangeDebounce`: tunda per field (pengganti `->debounce()`).
+const timers = new Map<string, ReturnType<typeof setTimeout>>();
+onBeforeUnmount(() => timers.forEach((t) => clearTimeout(t)));
+
 function update(name: string, value: unknown) {
   const next = { ...latestValues(), [name]: value };
-  props.fields.find((f) => f.name === name)?.onChange?.(value, next);
+  const f = props.fields.find((x) => x.name === name);
+  if (f?.onChange && f.onChangeDebounce) {
+    clearTimeout(timers.get(name));
+    timers.set(
+      name,
+      setTimeout(() => {
+        timers.delete(name);
+        f.onChange!(latestValues()[name], latestValues());
+      }, f.onChangeDebounce),
+    );
+  } else f?.onChange?.(value, next);
   commitValues(next);
   clearError(name);
 }
+
+/*
+ * Isi `defaultValue` (atau nilai kosong per tipe, mis. `[]` untuk chooser)
+ * untuk field yang nilainya masih `undefined` — agar `MrcForm`/`MrcFormPage`
+ * tidak perlu `initialValues()` manual. Nilai yang sudah ada tidak disentuh.
+ */
+watch(
+  () => props.fields,
+  (fields) => {
+    const cur = latestValues();
+    let next: FormValues | null = null;
+    for (const f of fields) {
+      if (!isInput(f) || cur[f.name] !== undefined) continue;
+      next ??= { ...cur };
+      next[f.name] = f.defaultValue !== undefined ? f.defaultValue : emptyValue(f);
+    }
+    if (next) commitValues(next);
+  },
+  { immediate: true },
+);
 
 const ctx: FieldActionContext = {
   get values() {
@@ -114,6 +156,10 @@ function payload(): FormValues {
   return out;
 }
 
+const gridStyle = computed(() =>
+  props.gap || props.columnGap ? { rowGap: props.gap ?? '1rem', columnGap: props.columnGap ?? props.gap ?? '1rem' } : undefined,
+);
+
 async function submit() {
   if (await validate()) emit('submit', payload());
 }
@@ -135,7 +181,7 @@ defineExpose({ validate, payload, submit, setError, clearError });
           <p v-if="g.text" class="text-base-content/60 -mt-1 text-sm">{{ g.text }}</p>
           <div class="divider mt-0 mb-2" />
         </template>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-12">
+        <div class="grid grid-cols-1 sm:grid-cols-12" :class="!gap && !columnGap && 'gap-4'" :style="gridStyle">
           <div
             v-for="(f, i) in g.fields"
             :key="f.name ?? `${f.type}-${gi}-${i}`"
@@ -145,6 +191,7 @@ defineExpose({ validate, payload, submit, setError, clearError });
               f.rowSpan && rowSpans[f.rowSpan],
               f.type === 'hidden' && 'hidden',
               f.mobileOrder !== undefined && 'max-sm:order-(--mrc-order)',
+              f.class,
             ]"
             :style="f.mobileOrder !== undefined ? { '--mrc-order': f.mobileOrder } : undefined"
           >

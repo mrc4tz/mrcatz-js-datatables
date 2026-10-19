@@ -1,3 +1,4 @@
+import type { VNodeChild } from 'vue';
 import type { Tone } from './columns';
 import type { IconName } from './icons';
 
@@ -9,14 +10,23 @@ export interface ExpandField {
   value?: (row: any) => unknown;
   /**
    * `text` (default), `image`, `button` (tautan unduh/lampiran bergaya link),
-   * atau `link` (tombol tautan).
+   * `link` (tombol tautan), `html` (HTML mentah — pastikan aman dari XSS),
+   * atau `custom` (render VNode sendiri lewat `render`).
    */
-  type?: 'text' | 'image' | 'button' | 'link';
+  type?: 'text' | 'image' | 'button' | 'link' | 'html' | 'custom';
+  /** Untuk `html`: string HTML. Default nilai field. */
+  html?: (row: any) => string;
+  /** Untuk `custom`: isi sel, mis. `(row) => h(MyBadge, { status: row.status })`. */
+  render?: (row: any) => VNodeChild;
   /** Untuk `button`/`link`: URL tujuan. Default nilai field. */
   href?: (row: any) => string;
   linkLabel?: string;
   icon?: IconName;
   newTab?: boolean;
+  /** Untuk `button`/`link`: atribut `target` bebas (menimpa `newTab`). */
+  target?: string;
+  /** Untuk `image`: prefix URL path relatif (menimpa `imageBaseUrl`; `''` = apa adanya). Pengganti `urlPrefix`. */
+  baseUrl?: string;
   download?: boolean;
   /** Warna tombol `link` (default `ghost`). */
   tone?: Tone;

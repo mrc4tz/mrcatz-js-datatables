@@ -28,6 +28,13 @@ export interface InlineEditConfig<T> {
   validate?: (value: string, row: T) => string | true | undefined;
   /** Izinkan edit per baris (pengganti `enableEditable` callback). */
   when?: (row: T) => boolean;
+  /** Simpan juga saat input kehilangan fokus (default `false`: blur = batal, sama dengan Laravel). */
+  saveOnBlur?: boolean;
+  /**
+   * Ubah teks input menjadi nilai yang dikirim ke `@cell-update`
+   * (default: `number` → angka, selain itu string apa adanya).
+   */
+  parse?: (raw: string, row: T) => unknown;
 }
 
 export interface RowAction<T> {

@@ -11,6 +11,11 @@ defineProps<{ row: any; fields: ExpandField[] }>();
 const { imageBaseUrl } = useMrcatz();
 const val = (row: any, f: ExpandField) => (f.value ? f.value(row) : f.key ? getPath(row, f.key) : undefined);
 const href = (row: any, f: ExpandField) => f.href?.(row) ?? String(val(row, f) ?? '#');
+const target = (f: ExpandField) => f.target ?? (f.newTab ? '_blank' : undefined);
+const rel = (f: ExpandField) => (target(f) === '_blank' ? 'noopener noreferrer' : undefined);
+const html = (row: any, f: ExpandField) => (f.html ? f.html(row) : String(val(row, f) ?? ''));
+/** Komponen fungsional kecil agar `render(row)` bisa dipakai di template. */
+const Custom = (p: { row: any; field: ExpandField }) => p.field.render?.(p.row) ?? null;
 </script>
 
 <template>
@@ -20,7 +25,7 @@ const href = (row: any, f: ExpandField) => f.href?.(row) ?? String(val(row, f) ?
 
       <MrcImage
         v-if="f.type === 'image'"
-        :src="resolveImageUrl(val(row, f), imageBaseUrl)"
+        :src="resolveImageUrl(val(row, f), f.baseUrl ?? imageBaseUrl)"
         :fallback="f.fallbackKey ? String(getPath(row, f.fallbackKey) ?? '') : null"
         :width="f.width ?? 64"
         :height="f.height ?? 64"
@@ -34,8 +39,8 @@ const href = (row: any, f: ExpandField) => f.href?.(row) ?? String(val(row, f) ?
         :href="href(row, f)"
         class="link link-primary hover:link-hover inline-flex items-center gap-1.5 text-sm"
         :download="f.download || undefined"
-        :target="f.newTab ? '_blank' : undefined"
-        :rel="f.newTab ? 'noopener noreferrer' : undefined"
+        :target="target(f)"
+        :rel="rel(f)"
       >
         <MrcIcon v-if="f.icon" :name="f.icon" :size="16" />
         {{ f.linkLabel ?? f.label }}
@@ -47,12 +52,16 @@ const href = (row: any, f: ExpandField) => f.href?.(row) ?? String(val(row, f) ?
         class="btn btn-sm gap-1.5"
         :class="TONE_BTN[f.tone ?? 'ghost']"
         :download="f.download || undefined"
-        :target="f.newTab ? '_blank' : undefined"
-        :rel="f.newTab ? 'noopener noreferrer' : undefined"
+        :target="target(f)"
+        :rel="rel(f)"
       >
         <MrcIcon v-if="f.icon" :name="f.icon" :size="16" />
         {{ f.linkLabel ?? f.label }}
       </a>
+
+      <div v-else-if="f.type === 'html'" class="text-base-content/80 text-sm" v-html="html(row, f)" />
+
+      <div v-else-if="f.type === 'custom'" class="text-base-content/80 text-sm"><Custom :row="row" :field="f" /></div>
 
       <span v-else class="text-base-content/80 text-sm">{{ val(row, f) ?? '-' }}</span>
     </div>

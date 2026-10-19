@@ -18,6 +18,12 @@ export interface BulkAction<T = any> {
   fields?: FieldDef[];
   /** Aksi hanya tampil bila semua baris terpilih memenuhi syarat. */
   when?: (rows: T[]) => boolean;
+  /**
+   * Notifikasi sukses setelah aksi berhasil. Default `"<n> data berhasil diupdate!"`.
+   * `false` = tanpa notifikasi; string/fungsi = pesan sendiri. Handler `@bulk-action`
+   * juga boleh mengembalikan string untuk menimpa pesan.
+   */
+  notify?: boolean | string | ((count: number) => string);
 }
 
 /**
@@ -26,6 +32,9 @@ export interface BulkAction<T = any> {
  * @example
  * bulkAction('arsipkan', 'Arsipkan', { mode: 'confirm', icon: 'inbox', tone: 'warning' })
  * bulkAction('ubahStatus', 'Ubah Status', { mode: 'form', fields: [field.select('status', 'Status', { options })] })
+ *
+ * Field `field.slot('x')` di form aksi massal dirender lewat slot
+ * `#bulk-field-<id aksi>-x="{ value, set, disabled }"` pada tabel.
  */
 export function bulkAction<T = any>(
   id: string,

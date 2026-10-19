@@ -38,16 +38,31 @@ export interface UseDataTableOptions<T> {
   rowKey?: RowKey<T>;
   /** Waktu cache data (ms). Default 0 = selalu segar saat kembali ke halaman. */
   staleTime?: number;
+  /** Jumlah baris per halaman di awal (pengganti `$p`). Default opsi pertama `perPageOptions`. */
+  defaultPerPage?: number;
+  /** Mode load-more: baris per "Muat lebih banyak" (pengganti `$maxRows`). Default = jumlah per halaman. */
+  loadMoreChunk?: number;
+  /** Prefix query string di URL browser (pengganti `urlPrefix()`). Default `"{name}_"`. */
+  urlPrefix?: string;
+  /** Dipanggil setiap data baru diterima (pengganti `onDataLoaded`). */
+  onLoaded?: (page: TablePage<T>) => void;
+  /**
+   * Dipanggil setiap kali nilai filter diubah lewat `setFilter` (bukan saat reset),
+   * pengganti hook `onFilterChanged($id, $value)`.
+   */
+  onFilterChange?: (id: string, value: FilterValue | undefined, filters: Record<string, FilterValue>) => void;
 }
 
 const LAYOUT_HIDE = 'cols.hide';
 const LAYOUT_ORDER = 'cols.order';
+/** Lebar kolom hasil resize: `cols.width=nama:180,email:240`. */
+const LAYOUT_WIDTH = 'cols.width';
 
 export function useDataTable<T>(opts: UseDataTableOptions<T>) {
   const name = opts.name ?? '';
-  const prefix = name ? `${name}_` : '';
+  const prefix = opts.urlPrefix ?? (name ? `${name}_` : '');
   const perPageOptions = opts.perPageOptions ?? [10, 25, 50, 100];
-  const baseLimit = perPageOptions[0] ?? 10;
+  const baseLimit = opts.defaultPerPage ?? perPageOptions[0] ?? 10;
   const pagination = opts.pagination ?? 'pages';
   const url = opts.syncUrl === false ? null : useUrlState();
   const queryClient = useQueryClient();
@@ -79,7 +94,7 @@ export function useDataTable<T>(opts: UseDataTableOptions<T>) {
     Object.assign(state, {
       search: q.search,
       page: q.page,
-      limit: perPageOptions.includes(q.limit) ? q.limit : baseLimit,
+      limit: perPageOptions.includes(q.limit) || q.limit === baseLimit ? q.limit : baseLimit,
       sort: q.sort,
       filters: q.filters,
     });
@@ -92,12 +107,18 @@ export function useDataTable<T>(opts: UseDataTableOptions<T>) {
     const hide = pick(LAYOUT_HIDE).filter((id) => ids.has(id));
     if (raw[`${prefix}${LAYOUT_HIDE}`] !== undefined) state.hidden = hide;
     state.order = pick(LAYOUT_ORDER).filter((id) => ids.has(id));
+    for (const pair of pick(LAYOUT_WIDTH)) {
+      const [id, w] = pair.split(':');
+      const px = Number(w);
+      if (id && ids.has(id) && Number.isFinite(px) && px >= 48) state.widths[id] = Math.round(px);
+    }
   }
 
+  /** Query yang dikirim ke sumber. Mode load-more / tanpa pagination menggabungkan beberapa halaman. */
   const query = computed<TableQuery>(() => ({
     search: state.search,
-    page: pagination === 'load-more' ? 1 : state.page,
-    limit: pagination === 'load-more' ? state.limit * state.loaded : pagination === false ? 10_000 : state.limit,
+    page: pagination === 'pages' ? state.page : 1,
+    limit: pagination === 'load-more' ? (opts.loadMoreChunk ?? state.limit) : pagination === false ? 100 : state.limit,
     sort: state.sort.length ? state.sort : (opts.defaultSort ?? []),
     filters: state.filters,
   }));
@@ -105,9 +126,12 @@ export function useDataTable<T>(opts: UseDataTableOptions<T>) {
   // Tulis ke URL setiap state berubah.
   if (url) {
     const owned = (k: string) =>
-      isTableParam(k, prefix) || k === `${prefix}${LAYOUT_HIDE}` || k === `${prefix}${LAYOUT_ORDER}`;
+      isTableParam(k, prefix) ||
+      k === `${prefix}${LAYOUT_HIDE}` ||
+      k === `${prefix}${LAYOUT_ORDER}` ||
+      k === `${prefix}${LAYOUT_WIDTH}`;
     watch(
-      () => [state.search, state.page, state.limit, state.sort, state.filters, state.hidden, state.order],
+      () => [state.search, state.page, state.limit, state.sort, state.filters, state.hidden, state.order, state.widths],
       () => {
         const params = toSearchParams(
           { search: state.search, page: state.page, limit: state.limit, sort: state.sort, filters: state.filters },
@@ -116,6 +140,8 @@ export function useDataTable<T>(opts: UseDataTableOptions<T>) {
         const hiddenChanged = [...state.hidden].sort().join(',') !== defaultHidden().sort().join(',');
         if (hiddenChanged) params.set(`${prefix}${LAYOUT_HIDE}`, state.hidden.join(','));
         if (state.order.length) params.set(`${prefix}${LAYOUT_ORDER}`, state.order.join(','));
+        const widths = Object.entries(state.widths);
+        if (widths.length) params.set(`${prefix}${LAYOUT_WIDTH}`, widths.map(([id, w]) => `${id}:${w}`).join(','));
         url.write(owned, params);
       },
       { deep: true },
@@ -124,12 +150,40 @@ export function useDataTable<T>(opts: UseDataTableOptions<T>) {
 
   // ---------------------------------------------------------------- data
   const sourceKey = computed(() => toValue(opts.source).key);
+  /**
+   * Load-more & tanpa pagination: ambil halaman 1..n (masing-masing di-cache
+   * terpisah agar klik berikutnya hanya mengambil halaman baru) lalu gabungkan.
+   * Tidak lagi memperbesar `limit`, jadi tidak terpotong `maxLimit` server.
+   */
+  async function fetchPages(q: TableQuery, signal: AbortSignal): Promise<TablePage<T>> {
+    const source = toValue(opts.source);
+    const part = (p: number) =>
+      queryClient.fetchQuery({
+        queryKey: ['mrcatz', sourceKey.value, name, 'part', { ...q, page: p }] as const,
+        queryFn: () => source.fetch({ ...q, page: p }, signal) as Promise<TablePage<T>>,
+        staleTime: Infinity,
+      });
+    const first = await part(1);
+    const want = pagination === false ? first.meta.totalPages : Math.min(state.loaded, Math.max(1, first.meta.totalPages));
+    const rest = await Promise.all(Array.from({ length: Math.max(0, want - 1) }, (_, i) => part(i + 2)));
+    const pages = [first, ...rest];
+    const last = pages[pages.length - 1]!;
+    return {
+      data: pages.flatMap((pg) => pg.data),
+      meta: { ...last.meta, page: 1, limit: q.limit, hasMore: want < last.meta.totalPages },
+    };
+  }
+
   const dataQuery = useQuery({
-    queryKey: computed(() => ['mrcatz', sourceKey.value, name, query.value] as const),
-    queryFn: ({ signal }) => toValue(opts.source).fetch(query.value, signal),
+    queryKey: computed(() => ['mrcatz', sourceKey.value, name, query.value, pagination === 'load-more' ? state.loaded : 0] as const),
+    queryFn: ({ signal }) =>
+      pagination === 'pages'
+        ? (toValue(opts.source).fetch(query.value, signal) as Promise<TablePage<T>>)
+        : fetchPages(query.value, signal),
     placeholderData: keepPreviousData,
     staleTime: opts.staleTime ?? 0,
   });
+  if (opts.onLoaded) watch(() => dataQuery.data.value, (pg) => pg && opts.onLoaded!(pg as TablePage<T>));
 
   const page = computed<TablePage<T> | undefined>(() => dataQuery.data.value);
   const rows = computed<T[]>(() => page.value?.data ?? []);
@@ -279,6 +333,7 @@ export function useDataTable<T>(opts: UseDataTableOptions<T>) {
     state.filters = next;
     clearDependents(id);
     criteriaChanged();
+    opts.onFilterChange?.(id, next[id], state.filters);
   }
 
   function clearFilters() {

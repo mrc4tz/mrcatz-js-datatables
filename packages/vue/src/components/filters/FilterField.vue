@@ -4,7 +4,7 @@ import type { FilterSchema, FilterValue, MultiValue, RangeValue } from '@mrcatz/
 import { useMrcatz } from '../../config';
 import FilterMulti from './FilterMulti.vue';
 import FilterDateRange from './FilterDateRange.vue';
-import { inputType } from './dateUtils';
+import { inputStep, inputType } from './dateUtils';
 
 defineProps<{ filter: FilterSchema; value?: FilterValue; loading?: boolean }>();
 const emit = defineEmits<{ change: [value: FilterValue | undefined] }>();
@@ -25,6 +25,7 @@ function onSelect(e: Event) {
     <input
       v-else-if="filter.type === 'date'"
       :type="inputType(filter.format)"
+      :step="inputStep(filter.format)"
       class="input input-bordered input-sm focus:input-primary h-8 w-full text-sm transition-all duration-200"
       :value="typeof value === 'string' ? value : ''"
       :min="filter.format === 'year' ? (filter.min ?? 1900) : filter.min"

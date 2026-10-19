@@ -2,7 +2,8 @@
 
 Engine MrCatz DataTable untuk **Prisma** + integrasi **NestJS**: query string → `where`/`orderBy`/pagination,
 filter (select, multi Termasuk/Kecuali, tanggal, rentang tanggal, kustom), pencarian berbobot dengan toleransi
-salah ketik, peringkat relevansi PostgreSQL (opsional), whitelist sort, schema filter dinamis, dan export.
+salah ketik, peringkat relevansi PostgreSQL (opsional, termasuk kolom join), driver Meilisearch dengan filter
+pushdown (`@mrcatz/datatable-server/meilisearch`), whitelist sort, schema filter dinamis, dan export.
 
 ```ts
 import { defineDataTable, filter } from '@mrcatz/datatable-server';

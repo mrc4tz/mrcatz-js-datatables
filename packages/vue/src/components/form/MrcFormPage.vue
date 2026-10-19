@@ -10,6 +10,7 @@ import { getCurrentInstance, ref, resolveDynamicComponent } from 'vue';
 import { useMrcatz } from '../../config';
 import type { FieldDef, FormValues } from '../../fields';
 import type { IconName } from '../../icons';
+import { TONE_BTN, type Tone } from '../../columns';
 import { errorMessage, MrcFormError, type FormErrors, type StandardSchema } from '../../validation';
 import MrcIcon from '../MrcIcon.vue';
 import MrcForm from './MrcForm.vue';
@@ -22,6 +23,11 @@ const props = withDefaults(
     submit: (values: FormValues) => unknown;
     submitLabel?: string;
     submitIcon?: IconName;
+    /** Warna tombol simpan (pengganti `submitStyle`). Default `primary`. */
+    submitTone?: Tone;
+    /** Jarak antar-field / antar-kolom grid (pengganti `$formGap` / `$formColumnGap`). */
+    gap?: string;
+    columnGap?: string;
     /** Pesan sukses; `false` untuk tidak menampilkan notifikasi. */
     successMessage?: string | false;
     cancelTo?: string;
@@ -30,7 +36,7 @@ const props = withDefaults(
     /** Bungkus tombol di dalam kartu sendiri. */
     buttonCard?: boolean;
   }>(),
-  { submitIcon: 'check_circle', buttonAlign: 'right', buttonCard: false },
+  { submitIcon: 'check_circle', submitTone: 'primary', buttonAlign: 'right', buttonCard: false },
 );
 const values = defineModel<FormValues>({ required: true });
 const errors = defineModel<FormErrors>('errors', { default: () => ({}) });
@@ -60,7 +66,7 @@ defineExpose({ form });
 
 <template>
   <div>
-    <MrcForm ref="form" v-model="values" v-model:errors="errors" :fields="fields" :schema="schema" :readonly="saving" @submit="save">
+    <MrcForm ref="form" v-model="values" v-model:errors="errors" :fields="fields" :schema="schema" :readonly="saving" :gap="gap" :column-gap="columnGap" @submit="save">
       <template v-for="(_, slot) in $slots" #[slot]="scope">
         <slot :name="slot" v-bind="scope ?? {}" />
       </template>
@@ -80,8 +86,8 @@ defineExpose({ form });
           </component>
           <button
             type="button"
-            class="btn btn-primary gap-2 px-6 shadow-sm"
-            :class="buttonAlign === 'full' && 'btn-block'"
+            class="btn gap-2 px-6 shadow-sm"
+            :class="[TONE_BTN[submitTone], buttonAlign === 'full' && 'btn-block']"
             :disabled="saving"
             @click="form?.submit()"
           >

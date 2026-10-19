@@ -4,6 +4,7 @@ import {
   toSearchParams,
   type FilterDefinition,
   type FilterSchema,
+  type FilterValue,
   type MemoryTableOptions,
   type TablePage,
   type TableQuery,
@@ -129,16 +130,29 @@ export function memorySource<T>(
   };
 }
 
-/** Bentuk schema filter dari definisi (untuk sumber HTTP yang tidak punya endpoint schema). */
-export function staticFilters(defs: FilterDefinition[]): FilterSchema[] {
-  return defs.map((d) => ({
-    id: d.id,
-    label: d.label,
-    type: d.type,
-    visible: d.visible !== false,
-    options: 'options' in d && Array.isArray(d.options) ? d.options : undefined,
-    format: 'format' in d ? d.format : undefined,
-    allowExclude: d.type === 'multi' ? d.allowExclude : undefined,
-    searchThreshold: d.type === 'multi' ? (d.searchThreshold ?? null) : undefined,
-  }));
+/**
+ * Bentuk schema filter dari definisi (untuk sumber HTTP yang tidak punya endpoint
+ * schema). Opsi/`visible`/`min`/`max` berbentuk fungsi dihitung sekali dengan
+ * `values` (default kosong); opsi async diabaikan — pakai `schemaUrl` untuk itu.
+ */
+export function staticFilters(defs: FilterDefinition[], values: Record<string, FilterValue | undefined> = {}): FilterSchema[] {
+  const ctx = { values };
+  const dyn = <V>(v: V | ((c: typeof ctx) => V) | undefined): V | undefined =>
+    typeof v === 'function' ? (v as (c: typeof ctx) => V)(ctx) : v;
+  return defs.map((d) => {
+    const options = 'options' in d ? dyn(d.options as any) : undefined;
+    return {
+      id: d.id,
+      label: d.label,
+      type: d.type,
+      visible: dyn(d.visible) !== false,
+      options: Array.isArray(options) ? options : undefined,
+      format: 'format' in d ? (d.format ?? 'date') : undefined,
+      min: 'min' in d ? (dyn(d.min as any) as string | undefined) : undefined,
+      max: 'max' in d ? (dyn(d.max as any) as string | undefined) : undefined,
+      allowExclude: d.type === 'multi' ? d.allowExclude : undefined,
+      searchThreshold: d.type === 'multi' ? (d.searchThreshold ?? null) : undefined,
+      dependsOn: d.dependsOn === undefined ? undefined : Array.isArray(d.dependsOn) ? d.dependsOn : [d.dependsOn],
+    };
+  });
 }

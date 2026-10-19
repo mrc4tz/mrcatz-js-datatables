@@ -87,22 +87,60 @@ function cell(ref: string, value: unknown, style: number): string {
 
 export interface XlsxOptions {
   sheetName?: string;
+  /** Judul & subjudul di baris paling atas. */
+  title?: string;
+  subtitle?: string;
   /** Baris keterangan di atas header (mis. kondisi aktif). */
   preamble?: string[];
-  /** Warna header (hex tanpa #). Default navy mrcatz. */
+  /** @deprecated pakai `colors.headerBg`. */
   headerColor?: string;
+  /** Warna (hex tanpa #), sama dengan `export_colors` di `config/mrcatz.php`. */
+  colors?: Partial<ExportColors>;
+}
+
+/** Warna export Excel & PDF (pengganti `export_colors`). Hex tanpa `#`. */
+export interface ExportColors {
+  headerBg: string;
+  headerText: string;
+  headerBorder: string;
+  titleText: string;
+  subtitleText: string;
+  border: string;
+  stripe: string;
+  bottomBorder: string;
+}
+
+export const DEFAULT_EXPORT_COLORS: ExportColors = {
+  headerBg: '1B3A5C',
+  headerText: 'FFFFFF',
+  headerBorder: '0F2942',
+  titleText: '1B3A5C',
+  subtitleText: '6B7280',
+  border: 'D1D5DB',
+  stripe: 'F0F4F8',
+  bottomBorder: '1B3A5C',
+};
+
+const hex = (v: string) => v.replace(/^#/, '').toUpperCase();
+export function resolveExportColors(colors?: Partial<ExportColors>, headerColor?: string): ExportColors {
+  const out = { ...DEFAULT_EXPORT_COLORS, ...(headerColor ? { headerBg: headerColor } : {}), ...colors };
+  return Object.fromEntries(Object.entries(out).map(([k, v]) => [k, hex(v)])) as unknown as ExportColors;
 }
 
 export function buildXlsx(headers: string[], rows: unknown[][], opts: XlsxOptions = {}): Uint8Array {
   const pre = opts.preamble ?? [];
   const lines: string[] = [];
   let r = 1;
+  if (opts.title) lines.push(`<row r="${r}">${cell(`A${r}`, opts.title, 4)}</row>`), r++;
+  if (opts.subtitle) lines.push(`<row r="${r}">${cell(`A${r}`, opts.subtitle, 5)}</row>`), r++;
+  if (opts.title || opts.subtitle) r++;
   for (const p of pre) lines.push(`<row r="${r}">${cell(`A${r}`, p, 3)}</row>`), r++;
   if (pre.length) r++;
   lines.push(`<row r="${r}">${headers.map((h, i) => cell(`${colName(i)}${r}`, h, 1)).join('')}</row>`);
   r++;
   rows.forEach((row, ri) => {
-    lines.push(`<row r="${r}">${row.map((v, i) => cell(`${colName(i)}${r}`, v, ri % 2 ? 2 : 0)).join('')}</row>`);
+    const last = ri === rows.length - 1;
+    lines.push(`<row r="${r}">${row.map((v, i) => cell(`${colName(i)}${r}`, v, last ? (ri % 2 ? 7 : 6) : ri % 2 ? 2 : 0)).join('')}</row>`);
     r++;
   });
   const widths = headers.map((h, i) =>
@@ -110,8 +148,12 @@ export function buildXlsx(headers: string[], rows: unknown[][], opts: XlsxOption
   );
   const cols = `<cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>`;
   const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${cols}<sheetData>${lines.join('')}</sheetData></worksheet>`;
-  const color = opts.headerColor ?? '1B3A5C';
-  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><i/><sz val="10"/><color rgb="FF555555"/><name val="Calibri"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF${color}"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF3F4F6"/></patternFill></fill></fills><borders count="2"><border/><border><left style="thin"><color rgb="FFDDDDDD"/></left><right style="thin"><color rgb="FFDDDDDD"/></right><top style="thin"><color rgb="FFDDDDDD"/></top><bottom style="thin"><color rgb="FFDDDDDD"/></bottom></border></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="4"><xf borderId="1" applyBorder="1"/><xf fontId="1" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf fillId="3" borderId="1" applyFill="1" applyBorder="1"/><xf fontId="2" applyFont="1"/></cellXfs></styleSheet>`;
+  const c = resolveExportColors(opts.colors, opts.headerColor);
+  const thin = (rgb: string) => ['left', 'right', 'top', 'bottom'].map((side) => `<${side} style="thin"><color rgb="FF${rgb}"/></${side}>`).join('');
+  const bottom = `<left style="thin"><color rgb="FF${c.border}"/></left><right style="thin"><color rgb="FF${c.border}"/></right><top style="thin"><color rgb="FF${c.border}"/></top><bottom style="medium"><color rgb="FF${c.bottomBorder}"/></bottom>`;
+  // fonts: 0 isi, 1 header, 2 keterangan, 3 judul, 4 subjudul · fills: 2 header, 3 zebra · borders: 1 isi, 2 header, 3 baris terakhir
+  // cellXfs: 0 isi, 1 header, 2 zebra, 3 keterangan, 4 judul, 5 subjudul, 6/7 baris terakhir (+zebra)
+  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="5"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FF${c.headerText}"/><name val="Calibri"/></font><font><i/><sz val="9"/><color rgb="FF${c.subtitleText}"/><name val="Calibri"/></font><font><b/><sz val="14"/><color rgb="FF${c.titleText}"/><name val="Calibri"/></font><font><sz val="10"/><color rgb="FF${c.subtitleText}"/><name val="Calibri"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF${c.headerBg}"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF${c.stripe}"/></patternFill></fill></fills><borders count="4"><border/><border>${thin(c.border)}</border><border>${thin(c.headerBorder)}</border><border>${bottom}</border></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="8"><xf borderId="1" applyBorder="1"/><xf fontId="1" fillId="2" borderId="2" applyFont="1" applyFill="1" applyBorder="1"/><xf fillId="3" borderId="1" applyFill="1" applyBorder="1"/><xf fontId="2" applyFont="1"/><xf fontId="3" applyFont="1"/><xf fontId="4" applyFont="1"/><xf borderId="3" applyBorder="1"/><xf fillId="3" borderId="3" applyFill="1" applyBorder="1"/></cellXfs></styleSheet>`;
   const name = esc((opts.sheetName ?? 'Data').slice(0, 31).replace(/[\\/?*[\]:]/g, ' '));
   const files = {
     '[Content_Types].xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`,

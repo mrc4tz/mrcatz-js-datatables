@@ -2,7 +2,8 @@
 /**
  * Sel yang bisa diedit langsung (pengganti `partials/inline-edit.blade.php`):
  * kotak bergaris putus-putus + ikon pensil; klik dua kali (desktop) atau
- * ketuk (mobile) untuk mengedit, Enter simpan, Escape batal.
+ * ketuk (mobile) untuk mengedit, Enter simpan, Escape batal, Tab simpan lalu
+ * pindah ke sel editable berikutnya (Shift+Tab ke sebelumnya).
  */
 import { nextTick, ref } from 'vue';
 import type { InlineEditConfig } from '../../columns';
@@ -22,6 +23,7 @@ const saving = ref(false);
 const error = ref('');
 const draft = ref('');
 const input = ref<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>();
+const root = ref<HTMLElement>();
 
 async function start() {
   draft.value = props.value === null || props.value === undefined ? '' : String(props.value);
@@ -37,13 +39,17 @@ function cancel() {
   editing.value = false;
   error.value = '';
 }
-async function submit() {
+/** `true` bila tersimpan (atau tidak ada perubahan). */
+async function submit(): Promise<boolean> {
   const invalid = props.config.validate?.(draft.value, props.row);
   if (typeof invalid === 'string') {
     error.value = invalid;
-    return;
+    return false;
   }
-  if (draft.value === String(props.value ?? '')) return cancel();
+  if (draft.value === String(props.value ?? '')) {
+    cancel();
+    return true;
+  }
   editing.value = false;
   saving.value = true;
   const err = await props.save(draft.value);
@@ -53,15 +59,37 @@ async function submit() {
     editing.value = true;
     await nextTick();
     input.value?.focus();
+    return false;
   }
+  return true;
 }
+let tabbing = false;
 function onBlur() {
+  if (tabbing) return;
+  if (props.config.saveOnBlur && editing.value) return void submit();
   if (!error.value) editing.value = false;
+}
+/** Tab: simpan, lalu buka sel editable berikutnya/sebelumnya di tabel yang sama. */
+async function onTab(e: KeyboardEvent) {
+  e.preventDefault();
+  const scope = root.value?.closest('table, [data-mrc-cards]') ?? document;
+  const cells = Array.from(scope.querySelectorAll<HTMLElement>('[data-inline-edit]'));
+  const next = cells[cells.indexOf(root.value!) + (e.shiftKey ? -1 : 1)];
+  tabbing = true;
+  const ok = await submit();
+  tabbing = false;
+  // Setelah simpan tabel di-refresh; cari ulang sel berdasarkan posisi.
+  if (ok && next) {
+    await nextTick();
+    const idx = cells.indexOf(next);
+    const fresh = Array.from(scope.querySelectorAll<HTMLElement>('[data-inline-edit]'))[idx] ?? next;
+    fresh.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+  }
 }
 </script>
 
 <template>
-  <div @dblclick.stop="start" @click.stop="onClick">
+  <div ref="root" data-inline-edit @dblclick.stop="start" @click.stop="onClick">
     <span
       v-if="!editing && !saving"
       class="group/edit bg-primary/5 hover:bg-primary/10 border-primary/20 hover:border-primary/40 inline-flex cursor-text items-center gap-1.5 rounded border border-dashed transition-all duration-150"
@@ -90,11 +118,24 @@ function onBlur() {
         :class="{ 'select-error': error }"
         @keydown.enter.prevent="submit"
         @keydown.escape.prevent="cancel"
+        @keydown.tab="onTab"
         @change="submit"
         @blur="onBlur"
       >
         <option v-for="o in config.options ?? []" :key="String(o.value)" :value="String(o.value)">{{ o.label }}</option>
       </select>
+      <textarea
+        v-else-if="config.input === 'textarea'"
+        ref="input"
+        v-model="draft"
+        rows="3"
+        class="textarea textarea-xs textarea-bordered w-full max-w-[260px] text-sm"
+        :class="{ 'textarea-error': error }"
+        @keydown.enter.exact.prevent="submit"
+        @keydown.escape.prevent="cancel"
+        @keydown.tab="onTab"
+        @blur="onBlur"
+      />
       <input
         v-else
         ref="input"
@@ -104,6 +145,7 @@ function onBlur() {
         :class="{ 'input-error': error }"
         @keydown.enter.prevent="submit"
         @keydown.escape.prevent="cancel"
+        @keydown.tab="onTab"
         @blur="onBlur"
       />
       <span v-if="error" role="alert" aria-live="assertive" class="text-error mt-0.5 max-w-[200px] text-xs">{{ error }}</span>

@@ -16,13 +16,13 @@
  * />
  */
 import { computed, nextTick, ref, useSlots, watch } from 'vue';
-import type { FilterSchema, SortRule } from '@mrcatz/datatable-core';
+import type { FilterSchema, FilterValue, SortRule, TablePage } from '@mrcatz/datatable-core';
 import { useMrcatz } from '../config';
 import { allowed, cellValue, type CellContext, type ColumnDef } from '../columns';
 import type { DataSource } from '../sources';
 import type { BulkAction } from '../bulk';
 import type { ExpandField } from '../expand';
-import type { ExportFormat } from '../export';
+import type { ExportOptions } from '../export';
 import { initialValues, type FormValues } from '../fields';
 import { errorMessage, MrcFormError, type FormErrors } from '../validation';
 import { useDataTable, type PaginationMode, type RowKey } from '../composables/useDataTable';
@@ -57,6 +57,8 @@ const props = withDefaults(
     /** `submit` (Enter, default Laravel), `live` (cari saat mengetik dengan debounce). */
     searchMode?: 'live' | 'submit';
     searchDebounce?: number;
+    /** Jeda (ms) filter select/tanggal sebelum diterapkan (pengganti `$filterDebounceDelay`). Default 300. */
+    filterDebounce?: number;
     searchPlaceholder?: string;
 
     perPageOptions?: number[];
@@ -64,6 +66,16 @@ const props = withDefaults(
     /** Schema filter statis (bila sumber tidak menyediakan `schema`). */
     filters?: FilterSchema[];
     pagination?: PaginationMode;
+    /** Jumlah baris per halaman di awal (pengganti `$p`). */
+    defaultPerPage?: number;
+    /** Baris per klik "Muat lebih banyak" (pengganti `$maxRows`). */
+    loadMoreChunk?: number;
+    /** Tampilkan tombol "Muat lebih banyak" (pengganti `$showLoadMoreButton`). `false` = hanya potongan pertama. */
+    loadMoreButton?: boolean;
+    /** Indikator memuat: `skeleton` (default), `fullscreen` (pengganti `$withLoading`), atau `false`. */
+    loadingOverlay?: 'skeleton' | 'fullscreen' | false;
+    /** Prefix query string URL (pengganti `urlPrefix()`). Default `"{name}_"`. */
+    urlPrefix?: string;
     syncUrl?: boolean;
     rowKey?: RowKey<T>;
 
@@ -76,6 +88,11 @@ const props = withDefaults(
     expandable?: boolean | 'both' | 'desktop' | 'mobile';
     /** Isi expand otomatis; alternatifnya slot `#expand`. */
     expandFields?: ExpandField[] | ((row: T) => ExpandField[] | null);
+    /**
+     * Baris mana yang bisa dibuka (pengganti `enableExpand()` yang mengembalikan `null`).
+     * Berlaku juga saat memakai slot `#expand`.
+     */
+    expandWhen?: (row: T) => boolean;
 
     /** Bungkus tabel dalam kartu (pengganti `$cardContainer`). */
     card?: boolean;
@@ -92,7 +109,7 @@ const props = withDefaults(
     sorting?: boolean;
     keyboardNav?: boolean;
     showKeyboardHint?: boolean;
-    exportable?: boolean | { formats?: ExportFormat[]; filename?: string };
+    exportable?: boolean | ExportOptions;
     presets?: boolean;
     showRefresh?: boolean;
     /** Tampilkan tombol Tambah. Default: otomatis bila ada listener `@create`. */
@@ -103,7 +120,8 @@ const props = withDefaults(
     onEdit?: (row: T) => void;
     onDelete?: (row: T) => void;
     onRowClick?: (row: T) => void;
-    onCellUpdate?: (row: T, key: string, value: string) => unknown;
+    /** `value` sudah melewati `editable.parse` (default: angka untuk input `number`). */
+    onCellUpdate?: (row: T, key: string, value: any) => unknown;
     onBulkDelete?: (rows: T[]) => unknown;
     onBulkAction?: (action: BulkAction<T>, rows: T[], values: FormValues) => unknown;
   }>(),
@@ -111,6 +129,9 @@ const props = withDefaults(
     searchable: true,
     searchMode: 'submit',
     searchDebounce: 500,
+    loadMoreButton: true,
+    loadingOverlay: 'skeleton',
+    filterDebounce: 300,
     pagination: 'pages',
     syncUrl: true,
     selectable: false,
@@ -134,7 +155,13 @@ const props = withDefaults(
   },
 );
 
-const emit = defineEmits<{ 'selection-change': [rows: T[]] }>();
+const emit = defineEmits<{
+  'selection-change': [rows: T[]];
+  /** Data baru diterima (pengganti `onDataLoaded`). */
+  loaded: [page: TablePage<T>];
+  /** Nilai filter berubah (pengganti `onFilterChanged`). */
+  'filter-change': [id: string, value: FilterValue | undefined, filters: Record<string, FilterValue>];
+}>();
 const selectionMode = defineModel<boolean>('selectionMode', { default: false });
 const slots = useSlots();
 const { t, notify } = useMrcatz();
@@ -147,6 +174,11 @@ const table = useDataTable<T>({
   defaultSort: props.defaultSort,
   filters: () => props.filters,
   pagination: props.pagination,
+  defaultPerPage: props.defaultPerPage,
+  loadMoreChunk: props.loadMoreChunk,
+  urlPrefix: props.urlPrefix,
+  onLoaded: (page) => emit('loaded', page),
+  onFilterChange: (id, value, filters) => emit('filter-change', id, value, filters),
   syncUrl: props.syncUrl,
   rowKey: props.rowKey,
 });
@@ -248,7 +280,12 @@ function expandContent(row: T): ExpandField[] | null {
   const f = props.expandFields;
   return typeof f === 'function' ? f(row) : (f ?? null);
 }
-const hasExpand = (row: T) => !!slots.expand || !!expandContent(row);
+const hasExpand = (row: T) => {
+  if (props.expandWhen && !props.expandWhen(row)) return false;
+  // `expandFields` fungsi yang mengembalikan `null` menyembunyikan chevron, meski ada slot.
+  if (typeof props.expandFields === 'function' && !props.expandFields(row)) return false;
+  return !!slots.expand || !!expandContent(row);
+};
 function toggleExpand(row: T) {
   const k = table.keyOf(row);
   const next = new Set(expanded.value);
@@ -273,8 +310,10 @@ const ctxOf = (index: number): CellContext => ({
 function canInlineEdit(c: ColumnDef<T>, row: T) {
   return !!props.onCellUpdate && !!c.editable && !!c.key && allowed(c.editable.when, row);
 }
-async function saveCell(c: ColumnDef<T>, row: T, value: string): Promise<string | null> {
+async function saveCell(c: ColumnDef<T>, row: T, raw: string): Promise<string | null> {
   try {
+    const cfg = c.editable || {};
+    const value = cfg.parse ? cfg.parse(raw, row) : cfg.input === 'number' && raw !== '' ? Number(raw) : raw;
     await props.onCellUpdate!(row, c.key!, value);
     notify('success', `${entityName.value} ${t('crud.success')} ${t('crud.updated')}`);
     await table.refresh();
@@ -337,9 +376,21 @@ async function runBulk(values: FormValues) {
   if (!action || !props.onBulkAction) return;
   bulkBusy.value = true;
   try {
-    await props.onBulkAction(action, table.selectedRows.value, values);
+    const count = table.selectedRows.value.length;
+    const result = await props.onBulkAction(action, table.selectedRows.value, values);
     activeBulk.value = null;
     table.clearSelection();
+    const message =
+      typeof result === 'string' && result
+        ? result
+        : action.notify === false
+          ? null
+          : typeof action.notify === 'string'
+            ? action.notify
+            : typeof action.notify === 'function'
+              ? action.notify(count)
+              : `${count} data ${t('crud.success')} ${t('crud.updated')}`;
+    if (message) notify('success', message);
     await table.refresh();
   } catch (e) {
     if (e instanceof MrcFormError) bulkErrors.value = e.fields;
@@ -557,7 +608,7 @@ defineExpose({ table, refresh: table.refresh, reset: table.reset, clearSelection
       leave-active-class="transition ease-in duration-150"
       leave-to-class="opacity-0 -translate-y-2"
     >
-      <FilterPanel v-if="hasFilters && filterOpen" :table="table" />
+      <FilterPanel v-if="hasFilters && filterOpen" :table="table" :debounce="filterDebounce" />
     </Transition>
 
     <!-- Bar aksi massal -->
@@ -867,7 +918,7 @@ defineExpose({ table, refresh: table.refresh, reset: table.reset, clearSelection
           </div>
 
           <!-- Skeleton loading (overlay agar tata letak tidak bergeser) -->
-          <div v-if="busy || table.isLoading.value" class="z-10" :class="hasData ? 'bg-base-100/80 absolute inset-0' : 'relative'">
+          <div v-if="loadingOverlay === 'skeleton' && (busy || table.isLoading.value)" class="z-10" :class="hasData ? 'bg-base-100/80 absolute inset-0' : 'relative'">
             <div v-if="mobileCards" class="space-y-3 pt-3 md:hidden">
               <div v-for="sk in Math.min(skeletonRows, 3)" :key="sk" class="border-base-content/8 bg-base-100 space-y-2 rounded-xl border p-4">
                 <div class="space-y-1">
@@ -902,7 +953,7 @@ defineExpose({ table, refresh: table.refresh, reset: table.reset, clearSelection
         </div>
 
         <!-- Muat lebih banyak -->
-        <div v-if="pagination === 'load-more' && meta.hasMore && hasData" class="flex flex-col items-center gap-2 py-4">
+        <div v-if="pagination === 'load-more' && loadMoreButton && meta.hasMore && hasData" class="flex flex-col items-center gap-2 py-4">
           <p class="text-base-content/40 text-xs">{{ t('pagination.showing', { count: rows.length }) }}</p>
           <button type="button" class="btn btn-sm btn-outline btn-primary gap-1.5" :disabled="busy" @click="table.loadMore()">
             <span v-if="busy" class="loading loading-spinner loading-xs" />
@@ -957,14 +1008,17 @@ defineExpose({ table, refresh: table.refresh, reset: table.reset, clearSelection
       :busy="bulkBusy"
       @submit="runBulk"
       @cancel="activeBulk = null"
-    />
+    >
+      <template v-for="f in (activeBulk.fields ?? []).filter((x) => x.type === 'slot')" :key="f.name" #[`field-${f.name}`]="scope">
+        <slot :name="`bulk-field-${activeBulk.id}-${f.name}`" v-bind="scope" />
+      </template>
+    </BulkActionModal>
     <ExportModal
       v-if="exportable"
       v-model:open="exportOpen"
       :table="table"
       :title="title ?? entity ?? name ?? 'Data'"
-      :formats="exportOpts.formats"
-      :filename="exportOpts.filename"
+      :options="exportOpts"
     />
 
     <!-- Bottom-sheet mobile -->
@@ -983,5 +1037,20 @@ defineExpose({ table, refresh: table.refresh, reset: table.reset, clearSelection
         </template>
       </MrcModal>
     </template>
+
+    <!-- Overlay layar penuh (pengganti `$withLoading`) -->
+    <Teleport to="body">
+      <div
+        v-if="loadingOverlay === 'fullscreen' && busy"
+        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+        role="status"
+        aria-live="polite"
+      >
+        <div class="flex flex-col items-center gap-3">
+          <span class="loading loading-dots loading-xl text-primary" />
+          <span class="text-sm font-medium text-white">{{ t(table.isLoading.value ? 'loading' : 'processing') }}</span>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>

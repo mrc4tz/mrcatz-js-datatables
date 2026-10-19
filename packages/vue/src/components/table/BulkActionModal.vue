@@ -63,7 +63,11 @@ const btn: Record<string, string> = {
         <button type="button" class="btn btn-ghost btn-sm btn-circle" :disabled="busy" @click="emit('cancel')"><MrcIcon name="close" /></button>
       </div>
       <div class="max-h-[60vh] overflow-y-auto pr-1">
-        <MrcForm ref="form" v-model="values" v-model:errors="errors" :fields="action.fields ?? []" :readonly="busy" @submit="emit('submit', $event)" />
+        <MrcForm ref="form" v-model="values" v-model:errors="errors" :fields="action.fields ?? []" :readonly="busy" @submit="emit('submit', $event)">
+          <template v-for="f in (action.fields ?? []).filter((x) => x.type === 'slot')" :key="f.name" #[`field-${f.name}`]="scope">
+            <slot :name="`field-${f.name}`" v-bind="scope" />
+          </template>
+        </MrcForm>
       </div>
       <div class="border-base-content/10 mt-5 flex items-center justify-between border-t pt-3">
         <span class="text-base-content/50 text-xs">{{ count }} {{ t('bulk.selected') }}</span>

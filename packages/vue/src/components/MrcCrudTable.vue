@@ -15,16 +15,21 @@
  *   :remove="(row) => api.delete(`/pengguna/${row.id}`)"
  *   :remove-many="(rows) => api.post('/pengguna/bulk-delete', { ids: rows.map(r => r.id) })"
  * />
+ *
+ * Form tulisan tangan (pengganti `@section('forms')` saat `setForm()` kosong):
+ * isi slot `#form="{ values, errors, set, mode, row, submit }"`; modal, tombol
+ * Simpan, validasi `schema`, notifikasi, dan refresh tetap ditangani di sini.
  */
-import { computed, ref, useAttrs } from 'vue';
+import { computed, nextTick, ref, useAttrs, watch } from 'vue';
 import { useMrcatz } from '../config';
 import { initialValues, type CrudMode, type FieldDef, type FormValues } from '../fields';
-import { errorMessage, MrcFormError, type FormErrors, type StandardSchema } from '../validation';
+import { errorMessage, MrcFormError, validateFields, type FormErrors, type StandardSchema } from '../validation';
 import MrcDataTable from './MrcDataTable.vue';
 import MrcModal from './MrcModal.vue';
 import MrcConfirm from './MrcConfirm.vue';
 import MrcIcon from './MrcIcon.vue';
 import MrcForm from './form/MrcForm.vue';
+import MrcFormPageShell from './form/MrcFormPageShell.vue';
 
 defineOptions({ inheritAttrs: false });
 
@@ -32,7 +37,8 @@ const props = withDefaults(
   defineProps<{
     /** Nama entitas untuk judul form & notifikasi, mis. "Pengguna". */
     entity: string;
-    fields: FieldDef[] | ((ctx: { mode: CrudMode; row: T | null }) => FieldDef[]);
+    /** Definisi field form. Boleh kosong bila memakai slot `#form`. */
+    fields?: FieldDef[] | ((ctx: { mode: CrudMode; row: T | null }) => FieldDef[]);
     schema?: StandardSchema;
     create?: (values: FormValues) => unknown;
     update?: (row: T, values: FormValues) => unknown;
@@ -48,11 +54,47 @@ const props = withDefaults(
     formSize?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
     /** Tutup form saat klik di luar / Esc (pengganti `$modalDismissOnClickOutside`). Default false. */
     formDismissible?: boolean;
+    /** Jarak antar-field / antar-kolom form (pengganti `$formGap` / `$formColumnGap`). */
+    formGap?: string;
+    formColumnGap?: string;
+    /**
+     * Form menggantikan area tabel, bukan modal (pengganti `$modalFullScreen`).
+     * Cocok untuk form panjang / editor rich text.
+     */
+    formPage?: boolean;
+    /** Gaya bingkai form halaman penuh (pengganti `$formPageCard` / `$formPageBorder`). */
+    formPageCard?: boolean;
+    formPageBorder?: boolean;
+    /** Dialog hapus bisa ditutup dengan klik di luar / Esc (pengganti `$deleteModalDismissOnClickOutside`). Default true. */
+    deleteDismissible?: boolean;
   }>(),
-  { formSize: 'lg', formDismissible: false },
+  { formSize: 'lg', formDismissible: false, formPage: false, formPageCard: true, formPageBorder: false, deleteDismissible: true },
 );
-const emit = defineEmits<{ saved: [mode: CrudMode, values: FormValues, result: unknown]; deleted: [rows: T[]] }>();
+const emit = defineEmits<{
+  saved: [mode: CrudMode, values: FormValues, result: unknown];
+  deleted: [rows: T[]];
+  /** Form tambah/edit dibuka (pengganti event `mrcatz-form-page-opened`). */
+  'form-open': [mode: CrudMode, row: T | null];
+  /** Form ditutup — batal maupun setelah simpan (pengganti `mrcatz-form-page-closed`). */
+  'form-close': [mode: CrudMode];
+}>();
 const attrs = useAttrs();
+const slots = defineSlots<{
+  /** Form tulisan tangan pengganti `MrcForm`. */
+  form?(props: {
+    values: FormValues;
+    errors: FormErrors;
+    set: (name: string, value: unknown) => void;
+    mode: CrudMode;
+    row: T | null;
+    saving: boolean;
+    submit: () => Promise<void>;
+  }): unknown;
+  // Slot lain (`#cell-*`, `#field-*`, `#empty`, ...) diteruskan ke tabel/form.
+  [name: string]: ((props: any) => unknown) | undefined;
+}>();
+/** Slot yang diteruskan ke tabel — `form` dipakai sendiri oleh modal. */
+const tableSlots = computed(() => Object.keys(slots).filter((n) => n !== 'form'));
 const { t, notify } = useMrcatz();
 
 const tableRef = ref<{ refresh: () => Promise<void> }>();
@@ -67,7 +109,7 @@ const saving = ref(false);
 const preparing = ref(false);
 
 const activeFields = computed(() =>
-  typeof props.fields === 'function' ? props.fields({ mode: mode.value, row: current.value }) : props.fields,
+  typeof props.fields === 'function' ? props.fields({ mode: mode.value, row: current.value }) : (props.fields ?? []),
 );
 const title = computed(() =>
   props.formTitle
@@ -106,7 +148,7 @@ async function save(payload: FormValues) {
   try {
     const result =
       mode.value === 'create' ? await props.create?.(payload) : await props.update?.(current.value as T, payload);
-    formOpen.value = false;
+    void closeForm();
     notify('success', `${props.entity} ${t('crud.success')} ${t(mode.value === 'create' ? 'crud.added' : 'crud.updated')}`);
     emit('saved', mode.value, payload, result);
     await tableRef.value?.refresh();
@@ -148,12 +190,47 @@ async function bulkDelete(rows: T[]) {
   emit('deleted', rows);
 }
 
+// ---------------------------------------------------------------- form manual (#form)
+function setValue(name: string, value: unknown) {
+  values.value = { ...values.value, [name]: value };
+  if (name in errors.value) {
+    const { [name]: _, ...rest } = errors.value;
+    errors.value = rest;
+  }
+}
+async function submitManual() {
+  const errs = await validateFields(activeFields.value, values.value, t, props.schema);
+  errors.value = errs;
+  if (!Object.keys(errs).length) await save({ ...values.value });
+}
+function submitForm() {
+  if (slots.form) void submitManual();
+  else formRef.value?.submit();
+}
+
+// ---------------------------------------------------------------- event & form halaman penuh
+const rootEl = ref<HTMLElement>();
+watch(formOpen, (open) => {
+  if (open) emit('form-open', mode.value, current.value);
+  else emit('form-close', mode.value);
+});
+/** Tutup form; di mode halaman penuh gulir kembali ke tabel (kecuali tombol ×). */
+async function closeForm(scroll = true) {
+  formOpen.value = false;
+  if (props.formPage && scroll) {
+    await nextTick();
+    rootEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
 const canEdit = computed(() => !!props.update);
-defineExpose({ openCreate, openEdit, refresh: () => tableRef.value?.refresh() });
+defineExpose({ openCreate, openEdit, closeForm, refresh: () => tableRef.value?.refresh() });
 </script>
 
 <template>
+  <div ref="rootEl" class="h-0" aria-hidden="true" />
   <MrcDataTable
+    v-show="!(formPage && formOpen)"
     ref="tableRef"
     v-bind="attrs as any"
     :on-create="create ? openCreate : undefined"
@@ -163,19 +240,28 @@ defineExpose({ openCreate, openEdit, refresh: () => tableRef.value?.refresh() })
     :entity="entity"
     :selectable="(attrs.selectable as any) ?? !!removeMany"
   >
-    <template v-for="(_, slot) in $slots" #[slot]="scope">
+    <template v-for="slot in tableSlots" #[slot]="scope">
       <slot :name="slot" v-bind="scope ?? {}" />
     </template>
   </MrcDataTable>
 
-  <MrcModal
+  <component
+    :is="formPage ? MrcFormPageShell : MrcModal"
     v-model:open="formOpen"
     :title="title"
     :icon="mode === 'edit' ? 'edit_note' : 'add_circle'"
-    :size="formSize"
-    :dismissible="formDismissible && !saving"
+    v-bind="
+      formPage
+        ? { card: formPageCard, border: formPageBorder, onDismiss: () => closeForm(false) }
+        : { size: formSize, dismissible: formDismissible && !saving }
+    "
   >
     <div v-if="preparing" class="flex justify-center py-10"><span class="loading loading-spinner" /></div>
+    <form v-else-if="$slots.form" novalidate @submit.prevent="submitManual">
+      <slot name="form" :values="values" :errors="errors" :set="setValue" :mode="mode" :row="(current as T | null)" :saving="saving" :submit="submitManual" />
+      <p v-if="errors._form" class="text-error mt-2 text-sm" role="alert">{{ errors._form }}</p>
+      <button type="submit" class="hidden" tabindex="-1" aria-hidden="true" />
+    </form>
     <MrcForm
       v-else
       ref="formRef"
@@ -184,6 +270,8 @@ defineExpose({ openCreate, openEdit, refresh: () => tableRef.value?.refresh() })
       :fields="activeFields"
       :schema="schema"
       :readonly="saving"
+      :gap="formGap"
+      :column-gap="formColumnGap"
       @submit="save"
     >
       <template v-for="f in activeFields.filter((x) => x.type === 'slot')" :key="f.name" #[`field-${f.name}`]="scope">
@@ -191,14 +279,14 @@ defineExpose({ openCreate, openEdit, refresh: () => tableRef.value?.refresh() })
       </template>
     </MrcForm>
     <template #footer>
-      <button type="button" class="btn btn-primary gap-2 px-6 shadow-sm" :disabled="saving || preparing" @click="formRef?.submit()">
+      <button type="button" class="btn btn-primary gap-2 px-6 shadow-sm" :disabled="saving || preparing" @click="submitForm">
         <span v-if="saving" class="loading loading-spinner loading-xs" />
         <MrcIcon v-else name="check_circle" />
         {{ t('action.save') }}
       </button>
-      <button type="button" class="btn btn-ghost" :disabled="saving" @click="formOpen = false">{{ t('action.cancel') }}</button>
+      <button type="button" class="btn btn-ghost" :disabled="saving" @click="closeForm()">{{ t('action.cancel') }}</button>
     </template>
-  </MrcModal>
+  </component>
 
   <MrcConfirm
     v-model:open="deleteOpen"
@@ -207,6 +295,7 @@ defineExpose({ openCreate, openEdit, refresh: () => tableRef.value?.refresh() })
     :description="t('confirm.deleteText')"
     :detail="toDelete && deleteLabel ? deleteLabel(toDelete) : undefined"
     :loading="deleting"
+    :dismissible="deleteDismissible"
     @confirm="confirmDelete"
   />
 </template>

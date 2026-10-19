@@ -9,7 +9,7 @@ import { computed, ref, watch } from 'vue';
 import type { TableQuery } from '@mrcatz/datatable-core';
 import { useMrcatz } from '../../config';
 import type { DataTableController } from '../../composables/useDataTable';
-import { buildExportTable, downloadCsv, downloadXlsx, printTable, type ExportFormat } from '../../export';
+import { buildExportTable, downloadCsv, downloadXlsx, printTable, type ExportFormat, type ExportOptions } from '../../export';
 import type { IconName } from '../../icons';
 import MrcIcon from '../MrcIcon.vue';
 import MrcModal from '../MrcModal.vue';
@@ -17,11 +17,16 @@ import MrcModal from '../MrcModal.vue';
 const props = defineProps<{
   table: DataTableController<any>;
   title: string;
+  /** Opsi `exportable` dari tabel (judul, subjudul, nama file, warna, hook). */
+  options?: ExportOptions;
+  /** @deprecated pakai `options.filename`. */
   filename?: string;
+  /** @deprecated pakai `options.formats`. */
   formats?: ExportFormat[];
 }>();
 const open = defineModel<boolean>('open', { default: false });
-const { t, notify, dateLocale } = useMrcatz();
+const { t, notify, dateLocale, exportColors } = useMrcatz();
+const opts = computed<ExportOptions>(() => props.options ?? {});
 
 const format = ref<ExportFormat>('pdf');
 const scope = ref<'all' | 'filtered'>('filtered');
@@ -36,7 +41,10 @@ const formatCards = computed(() =>
       { id: 'csv', label: 'CSV', ext: '.csv', icon: 'description', color: 'text-info' },
       { id: 'excel', label: 'Excel', ext: '.xlsx', icon: 'table_view', color: 'text-success' },
     ] as const
-  ).filter((f) => !props.formats || props.formats.includes(f.id)),
+  ).filter((f) => {
+    const allowed = opts.value.formats ?? props.formats;
+    return !allowed || allowed.includes(f.id);
+  }),
 );
 
 const selected = computed(() => props.table.selectedRows.value);
@@ -111,18 +119,29 @@ async function run() {
       sc === 'filtered' && selected.value.length
         ? selected.value
         : await fetchAll(sc === 'all' ? { ...q, search: '', filters: {}, page: 1 } : { ...q, page: 1 });
-    const data = buildExportTable(props.table.visibleColumns.value, rows);
-    const name = props.filename ?? (props.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'export');
-    const file = `${name}-${new Date().toISOString().slice(0, 10)}`;
+    const o = opts.value;
+    const ctx = { format: fmt, scope: (sc === 'filtered' && selected.value.length ? 'selected' : sc) as 'all' | 'filtered' | 'selected' };
+    let data = buildExportTable(props.table.visibleColumns.value, rows);
+    data = o.transform?.(data, { ...ctx, rows }) ?? data;
+    const title = o.title ?? props.title;
+    const subtitle = typeof o.subtitle === 'function' ? o.subtitle(ctx) : o.subtitle;
+    const colors = { ...exportColors, ...o.colors };
+    const rawName = typeof o.filename === 'function' ? o.filename(ctx) : (o.filename ?? props.filename);
+    const name = rawName ?? (title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'export');
+    const file = o.dateSuffix === false ? name : `${name}-${new Date().toISOString().slice(0, 10)}`;
     const stamp = new Intl.DateTimeFormat(dateLocale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date());
 
     if (fmt === 'csv') downloadCsv(data, file, { conditions: conds });
-    else if (fmt === 'excel') downloadXlsx(data, file, { conditions: conds, sheetName: props.title });
+    else if (fmt === 'excel') downloadXlsx(data, file, { conditions: conds, sheetName: title, title, subtitle, colors });
     else
-      printTable(data, props.title, {
+      printTable(data, title, {
         conditions: conds,
+        subtitle,
+        colors,
+        template: o.printTemplate,
         footer: `${t('export.bannerExported')}: ${stamp} · ${t('export.bannerTotal')}: ${data.rows.length} ${t('export.bannerRows')}`,
       });
+    o.onExported?.({ ...ctx, count: data.rows.length });
   } catch (e) {
     notify('error', e instanceof Error ? e.message : t('crud.failed'));
   } finally {

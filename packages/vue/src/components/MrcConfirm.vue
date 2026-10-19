@@ -22,8 +22,10 @@ withDefaults(
     tone?: Tone;
     variant?: 'large' | 'compact';
     loading?: boolean;
+    /** Tutup saat klik di luar / Esc. Default true. */
+    dismissible?: boolean;
   }>(),
-  { tone: 'error', icon: 'warning', variant: 'compact' },
+  { tone: 'error', icon: 'warning', variant: 'compact', dismissible: true },
 );
 const open = defineModel<boolean>('open', { default: false });
 const emit = defineEmits<{ confirm: [] }>();
@@ -39,7 +41,7 @@ const soft: Record<string, string> = {
 </script>
 
 <template>
-  <MrcModal v-model:open="open" :size="variant === 'compact' ? 'sm' : 'md'" :dismissible="!loading" body-class="" :box-class="variant === 'compact' ? 'text-center' : ''">
+  <MrcModal v-model:open="open" :size="variant === 'compact' ? 'sm' : 'md'" :dismissible="dismissible && !loading" body-class="" :box-class="variant === 'compact' ? 'text-center' : ''">
     <template v-if="variant === 'large'">
       <div class="mb-4 flex justify-center">
         <div class="flex h-16 w-16 items-center justify-center rounded-full" :class="soft[tone] ?? soft.error">

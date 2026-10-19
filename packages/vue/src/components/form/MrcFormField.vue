@@ -4,10 +4,15 @@ import { computed, ref, watch } from 'vue';
 import { useMrcatz } from '../../config';
 import { TONE_BTN } from '../../columns';
 import { evalCondition, type FieldActionContext, type FieldDef, type FieldOption, type FormValues } from '../../fields';
-import { errorMessage } from '../../validation';
+import { errorMessage, maxSizeMessage } from '../../validation';
 import MrcConfirm from '../MrcConfirm.vue';
 import MrcIcon from '../MrcIcon.vue';
 import MrcImage from '../table/MrcImage.vue';
+import { styleClasses, type StyledComponent } from './fieldClasses';
+import { fieldRenderer } from './registry';
+import FieldChooser from './fields/FieldChooser.vue';
+import FieldDateRange from './fields/FieldDateRange.vue';
+import FieldFile from './fields/FieldFile.vue';
 
 const props = defineProps<{
   field: FieldDef;
@@ -116,7 +121,7 @@ function upload() {
   const file = pickedFile.value;
   if (!file || !f.value.onUpload) return;
   if (f.value.maxSize && file.size > f.value.maxSize) {
-    props.ctx.setError(name.value, t('form.max', { label: f.value.label ?? '', max: `${Math.round(f.value.maxSize / 1024)} KB` }));
+    props.ctx.setError(name.value, maxSizeMessage(f.value, t));
     return;
   }
   void run(async () => {
@@ -128,6 +133,26 @@ function upload() {
 function removeImage() {
   confirmDelete.value = false;
   void run(() => f.value.onDelete!(props.ctx));
+}
+
+// ---------------------------------------------------------------- tipe tambahan
+/** Kelas warna/ukuran (`->style()` / `->size()`). */
+const sc = (c: StyledComponent) => styleClasses(c, f.value);
+/** Warna default `primary` hanya bila `tone` tidak diisi (hindari dua kelas warna bertabrakan). */
+const tonedOr = (c: StyledComponent, fallback: string) => [f.value.tone ? '' : fallback, sc(c)].filter(Boolean).join(' ');
+/** Renderer dari entry opsional (`/editor`, `/editor-advanced`, `/map`). */
+const renderer = computed(() => fieldRenderer(f.value.type));
+
+function onMultiSelect(e: Event) {
+  const picked = [...(e.target as HTMLSelectElement).selectedOptions].map((o) => o.value);
+  set(options.value.filter((o) => picked.includes(String(o.value))).map((o) => o.value));
+}
+const isSelected = (o: FieldOption) => Array.isArray(value.value) && value.value.some((v) => String(v) === String(o.value));
+
+const ratingMax = computed(() => Number(f.value.max ?? 5));
+const mapValue = computed(() => (value.value ?? {}) as { lat?: number | null; lng?: number | null });
+function setLatLng(key: 'lat' | 'lng', raw: string) {
+  set({ ...(value.value as object), [key]: raw === '' ? null : Number(raw) });
 }
 
 const legend = 'fieldset-legend text-xs font-semibold text-base-content/70 uppercase tracking-wide';
@@ -143,6 +168,10 @@ const inputBox = 'input input-bordered flex items-center gap-3 w-full transition
     <MrcIcon :name="alert.icon" class="shrink-0" />
     <span>{{ f.text }}</span>
   </div>
+  <template v-else-if="f.type === 'html'">
+    <div v-if="typeof f.content === 'string'" v-html="f.content" />
+    <component :is="f.content" v-else-if="f.content" :values="values" />
+  </template>
   <input v-else-if="f.type === 'hidden'" type="hidden" :name="name" :value="value" />
 
   <!-- Tombol aksi -->
@@ -164,8 +193,8 @@ const inputBox = 'input input-bordered flex items-center gap-3 w-full transition
         :src="f.preview ?? null"
         :alt="f.label"
         :fallback="f.fallback"
-        :width="f.previewSize ?? 128"
-        :height="f.previewSize ?? 128"
+        :width="f.previewWidth ?? f.previewSize ?? 128"
+        :height="f.previewHeight ?? f.previewSize ?? 128"
         :img-class="f.previewClass ?? 'rounded-full ring ring-primary ring-offset-base-100 ring-offset-2'"
         fallback-class="text-4xl font-bold text-primary"
       />
@@ -173,8 +202,8 @@ const inputBox = 'input input-bordered flex items-center gap-3 w-full transition
         <input
           ref="fileInput"
           type="file"
-          class="file-input file-input-bordered file-input-sm w-full"
-          :class="{ 'file-input-error': error }"
+          class="file-input file-input-bordered w-full"
+          :class="[f.size ? sc('file-input') : 'file-input-sm', { 'file-input-error': error }]"
           :accept="f.accept"
           :disabled="disabled || busy"
           @change="onPick"
@@ -219,7 +248,7 @@ const inputBox = 'input input-bordered flex items-center gap-3 w-full transition
       <input
         :id="inputId"
         type="checkbox"
-        :class="f.type === 'toggle' ? 'toggle toggle-primary' : 'checkbox checkbox-primary'"
+        :class="f.type === 'toggle' ? ['toggle', tonedOr('toggle', 'toggle-primary')] : ['checkbox', tonedOr('checkbox', 'checkbox-primary')]"
         :checked="!!value"
         :disabled="disabled"
         @change="set(($event.target as HTMLInputElement).checked)"
@@ -231,15 +260,111 @@ const inputBox = 'input input-bordered flex items-center gap-3 w-full transition
   </fieldset>
 
   <fieldset v-else class="fieldset">
-    <legend v-if="f.label" :class="legend">{{ f.label }}</legend>
+    <legend v-if="f.label" :class="legend">
+      <span v-if="f.type === 'map' && f.icon" class="inline-flex items-center gap-2"><MrcIcon :name="f.icon" :size="16" class="text-base-content/60" />{{ f.label }}</span>
+      <template v-else>{{ f.label }}</template>
+    </legend>
 
     <slot v-if="f.type === 'slot'" :value="value" :set="set" :disabled="disabled" />
+
+    <!-- Editor / peta: renderer dari entry opsional -->
+    <component
+      :is="renderer"
+      v-else-if="renderer && (f.type === 'editor' || f.type === 'editorAdvanced' || f.type === 'map')"
+      :field="f"
+      :model-value="value"
+      :disabled="disabled"
+      :invalid="!!error"
+      @update:model-value="set"
+    />
+    <template v-else-if="f.type === 'editor' || f.type === 'editorAdvanced'">
+      <!-- Cadangan bila entry editor belum diimpor: textarea HTML biasa -->
+      <textarea
+        :id="inputId"
+        class="textarea textarea-bordered h-40 w-full font-mono text-sm"
+        :class="{ 'textarea-error': error, 'bg-base-200 opacity-60': disabled }"
+        :placeholder="f.placeholder ?? t('form.editorPlaceholder')"
+        :disabled="disabled"
+        :value="value as string"
+        @input="set(($event.target as HTMLTextAreaElement).value)"
+      />
+      <p class="text-warning mt-1 text-xs">{{ t('form.editorMissing') }}</p>
+    </template>
+    <div v-else-if="f.type === 'map'" class="grid grid-cols-2 gap-2">
+      <!-- Cadangan bila entry peta belum diimpor: input lat/lng manual -->
+      <label class="flex flex-col gap-1">
+        <span class="text-base-content/60 text-[10px] font-semibold tracking-wide uppercase">{{ t('map.latitude') }}</span>
+        <input type="number" step="0.000001" min="-90" max="90" class="input input-bordered input-sm w-full text-sm tabular-nums" :class="error && 'input-error'" :disabled="disabled" :value="mapValue.lat ?? ''" @input="setLatLng('lat', ($event.target as HTMLInputElement).value)" />
+      </label>
+      <label class="flex flex-col gap-1">
+        <span class="text-base-content/60 text-[10px] font-semibold tracking-wide uppercase">{{ t('map.longitude') }}</span>
+        <input type="number" step="0.000001" min="-180" max="180" class="input input-bordered input-sm w-full text-sm tabular-nums" :class="error && 'input-error'" :disabled="disabled" :value="mapValue.lng ?? ''" @input="setLatLng('lng', ($event.target as HTMLInputElement).value)" />
+      </label>
+    </div>
+
+    <FieldDateRange
+      v-else-if="f.type === 'dateRange'"
+      :field="f"
+      :model-value="value as any"
+      :disabled="disabled"
+      :invalid="!!error"
+      :input-class="sc('input')"
+      @update:model-value="set"
+    />
+
+    <div v-else-if="f.type === 'rating'" class="rating" :class="[sc('rating'), disabled && 'opacity-60']">
+      <input
+        v-for="i in ratingMax"
+        :key="i"
+        type="radio"
+        :name="`rating_${name}`"
+        class="mask mask-star-2 bg-warning"
+        :value="i"
+        :aria-label="`${i}`"
+        :checked="Number(value) === i"
+        :disabled="disabled"
+        @change="set(i)"
+      />
+    </div>
+
+    <FieldChooser
+      v-else-if="f.type === 'chooser'"
+      :name="inputId"
+      :options="options"
+      :model-value="value as unknown[]"
+      :disabled="disabled || optionsLoading"
+      :invalid="!!error"
+      @update:model-value="set"
+    />
+
+    <FieldFile
+      v-else-if="f.type === 'file' || f.type === 'fileUpload'"
+      :field="f"
+      :model-value="value"
+      :ctx="ctx"
+      :disabled="disabled"
+      :invalid="!!error"
+      :input-class="sc('file-input')"
+      @update:model-value="set"
+    />
+
+    <select
+      v-else-if="f.type === 'select' && f.multiple"
+      :id="inputId"
+      multiple
+      class="border-base-content/20 bg-base-100 focus:border-base-content/40 min-h-24 w-full rounded-(--radius-field) border p-2 text-sm transition-all duration-200 focus:shadow-sm focus:outline-none [&>option]:rounded [&>option]:px-2 [&>option]:py-1"
+      :class="{ 'border-error': error, 'bg-base-200 opacity-60': disabled }"
+      :disabled="disabled || optionsLoading"
+      @change="onMultiSelect"
+    >
+      <option v-for="o in options" :key="String(o.value)" :value="String(o.value)" :selected="isSelected(o)">{{ o.label }}</option>
+    </select>
 
     <select
       v-else-if="f.type === 'select'"
       :id="inputId"
       class="select select-bordered w-full text-sm transition-all duration-200 focus:shadow-sm"
-      :class="{ 'select-error': error, 'bg-base-200 opacity-60': disabled }"
+      :class="[sc('select'), { 'select-error': error, 'bg-base-200 opacity-60': disabled }]"
       :disabled="disabled || optionsLoading"
       @change="set(options[($event.target as HTMLSelectElement).selectedIndex - 1]?.value ?? '')"
     >
@@ -249,7 +374,7 @@ const inputBox = 'input input-bordered flex items-center gap-3 w-full transition
 
     <div v-else-if="f.type === 'radio'" class="border-base-content/10 flex flex-wrap gap-4 rounded-lg border p-3" :class="disabled && 'bg-base-200 opacity-60'" role="radiogroup">
       <label v-for="o in options" :key="String(o.value)" class="flex cursor-pointer items-center gap-2">
-        <input type="radio" class="radio radio-primary" :name="inputId" :checked="value === o.value" :disabled="disabled" @change="set(o.value)" />
+        <input type="radio" class="radio" :class="tonedOr('radio', 'radio-primary')" :name="inputId" :checked="value === o.value" :disabled="disabled" @change="set(o.value)" />
         <span class="text-sm">{{ o.label }}</span>
       </label>
     </div>
@@ -258,7 +383,7 @@ const inputBox = 'input input-bordered flex items-center gap-3 w-full transition
       v-else-if="f.type === 'textarea'"
       :id="inputId"
       class="textarea textarea-bordered w-full text-sm transition-all duration-200 focus:shadow-sm"
-      :class="[{ 'textarea-error': error, 'bg-base-200 opacity-60': disabled }, f.rows ? '' : 'h-28']"
+      :class="[sc('textarea'), { 'textarea-error': error, 'bg-base-200 opacity-60': disabled }, f.rows ? '' : 'h-28']"
       :rows="f.rows"
       :placeholder="f.placeholder ?? '...'"
       :maxlength="f.maxLength"
@@ -267,7 +392,7 @@ const inputBox = 'input input-bordered flex items-center gap-3 w-full transition
       @input="set(($event.target as HTMLTextAreaElement).value)"
     />
 
-    <div v-else-if="f.type === 'tags'" :class="[inputBox, 'h-auto min-h-10 flex-wrap gap-1 py-1.5', error && 'input-error']">
+    <div v-else-if="f.type === 'tags'" :class="[inputBox, sc('input'), 'h-auto min-h-10 flex-wrap gap-1 py-1.5', error && 'input-error']">
       <span v-for="tag in (value as string[]) ?? []" :key="tag" class="badge badge-primary gap-1">
         {{ tag }}
         <button type="button" :disabled="disabled" @click="set(((value as string[]) ?? []).filter((x) => x !== tag))"><MrcIcon name="close" :size="12" /></button>
@@ -284,23 +409,12 @@ const inputBox = 'input input-bordered flex items-center gap-3 w-full transition
       />
     </div>
 
-    <input
-      v-else-if="f.type === 'file'"
-      :id="inputId"
-      type="file"
-      class="file-input file-input-bordered w-full"
-      :class="{ 'file-input-error': error }"
-      :accept="f.accept"
-      :multiple="f.multiple"
-      :disabled="disabled"
-      @change="set(f.multiple ? [...(($event.target as HTMLInputElement).files ?? [])] : (($event.target as HTMLInputElement).files?.[0] ?? null))"
-    />
-
     <div v-else-if="f.type === 'range'" class="flex items-center gap-3">
       <input
         :id="inputId"
         type="range"
-        class="range range-primary range-sm flex-1"
+        class="range flex-1"
+        :class="[tonedOr('range', 'range-primary'), f.size ? '' : 'range-sm']"
         :min="f.min ?? 0"
         :max="f.max ?? 100"
         :step="f.step ?? 1"
@@ -322,7 +436,7 @@ const inputBox = 'input input-bordered flex items-center gap-3 w-full transition
     />
 
     <!-- Input teks / angka / tanggal -->
-    <label v-else :class="[inputBox, error && 'input-error', disabled && 'bg-base-200 opacity-60']">
+    <label v-else :class="[inputBox, sc('input'), error && 'input-error', disabled && 'bg-base-200 opacity-60']">
       <span v-if="f.icon" class="text-base-content/40 inline-flex shrink-0 items-center justify-center self-center"><MrcIcon :name="f.icon" /></span>
       <span v-if="f.prefix" class="text-base-content/50 shrink-0 text-sm font-medium">{{ f.prefix }}</span>
       <input

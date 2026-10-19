@@ -1,6 +1,7 @@
 import type {
   CompareOperator,
   DateFormat,
+  Dynamic,
   FilterContext,
   FilterOption,
   FilterSchema,
@@ -59,16 +60,22 @@ export interface MultiFilterOptions<TWhere, TRow> extends CommonOptions<'multi',
 
 export interface DateFilterOptions<TWhere, TRow> extends CommonOptions<'date', TWhere, TRow> {
   format?: DateFormat;
-  operator?: CompareOperator;
-  min?: string;
-  max?: string;
+  /**
+   * Operator perbandingan. Boleh fungsi dari konteks filter (pengganti
+   * `setFilterDateBounds(..., condition)` versi Laravel).
+   */
+  operator?: Dynamic<CompareOperator>;
+  /** Batas bawah pemilih tanggal. Boleh fungsi (pengganti `setFilterDateBounds`). */
+  min?: Dynamic<string | undefined>;
+  /** Batas atas pemilih tanggal. Boleh fungsi (pengganti `setFilterDateBounds`). */
+  max?: Dynamic<string | undefined>;
 }
 
 export interface DateRangeFilterOptions<TWhere, TRow>
   extends CommonOptions<'dateRange', TWhere, TRow> {
   format?: DateFormat;
-  min?: string;
-  max?: string;
+  min?: Dynamic<string | undefined>;
+  max?: Dynamic<string | undefined>;
 }
 
 export type FilterDefinition<TWhere = unknown, TRow = any> =
@@ -135,6 +142,17 @@ export const filter = {
     return { id, label, type: 'dateRange', format: 'date', ...opts };
   },
 };
+
+/** Hitung nilai `Dynamic` (statis atau fungsi dari konteks filter). */
+export function resolveDynamic<T>(value: Dynamic<T>, ctx: FilterContext): T {
+  return typeof value === 'function' ? (value as (c: FilterContext) => T)(ctx) : value;
+}
+
+/** Operator efektif filter `date` untuk nilai filter saat ini. Default `=`. */
+export function dateOperator(def: FilterDefinition, ctx: FilterContext): CompareOperator {
+  if (def.type !== 'date') return '=';
+  return (def.operator === undefined ? undefined : resolveDynamic(def.operator, ctx)) ?? '=';
+}
 
 // ---------------------------------------------------------------------------
 // Normalisasi nilai
@@ -241,8 +259,8 @@ export async function describeFilters(
         }
       } else {
         base.format = def.format ?? 'date';
-        base.min = def.min;
-        base.max = def.max;
+        base.min = def.min === undefined ? undefined : resolveDynamic(def.min, ctx);
+        base.max = def.max === undefined ? undefined : resolveDynamic(def.max, ctx);
       }
       return base;
     }),

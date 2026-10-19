@@ -9,7 +9,8 @@
     "pagination",
     "filter",
     "search",
-    "mrcatz"
+    "mrcatz",
+    "meilisearch"
   ],
   "license": "MIT",
   "author": "Ryan N.R.",
@@ -29,6 +30,9 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "mrcatz": "./dist/cli.js"
+  },
   "exports": {
     ".": {
       "import": {
@@ -49,12 +53,25 @@
         "types": "./dist/nest.d.cts",
         "default": "./dist/nest.cjs"
       }
+    },
+    "./meilisearch": {
+      "import": {
+        "types": "./dist/meilisearch.d.ts",
+        "default": "./dist/meilisearch.js"
+      },
+      "require": {
+        "types": "./dist/meilisearch.d.cts",
+        "default": "./dist/meilisearch.cjs"
+      }
     }
   },
   "typesVersions": {
     "*": {
       "nest": [
         "./dist/nest.d.ts"
+      ],
+      "meilisearch": [
+        "./dist/meilisearch.d.ts"
       ]
     }
   },

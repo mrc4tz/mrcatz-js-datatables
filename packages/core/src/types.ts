@@ -57,8 +57,14 @@ export interface TablePage<T> {
 
 export type FilterType = 'select' | 'multi' | 'date' | 'dateRange';
 
-/** Granularitas nilai filter tanggal. */
-export type DateFormat = 'date' | 'datetime' | 'month' | 'year';
+/**
+ * Granularitas nilai filter tanggal.
+ *
+ * `time` (`HH:mm:ss`) dan `timeHm` (`HH:mm`) adalah jam dalam sehari (pengganti
+ * `time` / `time_hm` versi Laravel). Prisma tidak bisa mengekstrak jam secara
+ * portabel, jadi di engine server keduanya wajib memakai `where`.
+ */
+export type DateFormat = 'date' | 'datetime' | 'month' | 'year' | 'time' | 'timeHm';
 
 export type CompareOperator = '=' | '!=' | '>' | '>=' | '<' | '<=';
 
@@ -72,6 +78,9 @@ export interface FilterContext {
   /** Nilai filter aktif saat ini, dikunci berdasarkan id filter. */
   values: Record<string, FilterValue | undefined>;
 }
+
+/** Nilai statis atau fungsi dari konteks filter (dihitung ulang saat filter lain berubah). */
+export type Dynamic<T> = T | ((ctx: FilterContext) => T);
 
 export type OptionsSource =
   | FilterOption[]

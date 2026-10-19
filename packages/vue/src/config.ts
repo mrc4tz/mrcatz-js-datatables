@@ -1,5 +1,6 @@
 import { inject, reactive, type Component, type InjectionKey } from 'vue';
 import type { IconSet } from './icons';
+import type { ExportColors } from './xlsx';
 import { en, id, mergeMessages, translate, type DeepPartial, type MessageKey, type Messages } from './i18n';
 
 export type NotifyType = 'success' | 'error' | 'warning' | 'info';
@@ -22,6 +23,8 @@ export interface MrcatzOptions {
   dateLocale?: string;
   /** Pengaturan ikon (pengganti `icon_set` / `custom_icons` / `form_icons` di `config/mrcatz.php`). */
   icons?: IconOptions;
+  /** Pengaturan export global (pengganti `export_colors` di `config/mrcatz.php`). */
+  export?: { colors?: Partial<ExportColors> };
 }
 
 /**
@@ -83,28 +86,50 @@ export function openLightbox(url: string) {
 export interface MrcatzContext {
   messages: Messages;
   t: (key: MessageKey, params?: Record<string, unknown>) => string;
+  /** Bahasa aktif. */
+  readonly locale: 'id' | 'en';
+  /** Ganti bahasa saat runtime (teks `messages` kustom tetap dipakai). Komponen ikut berubah. */
+  setLocale: (locale: 'id' | 'en') => void;
   notify: NotifyFn;
   imageBaseUrl: string;
   dateLocale: string;
   icons: ResolvedIcons;
+  exportColors: Partial<ExportColors>;
 }
 
 export const MRCATZ_KEY: InjectionKey<MrcatzContext> = Symbol('mrcatz');
 
 export function createContext(opts: MrcatzOptions = {}): MrcatzContext {
-  const messages = mergeMessages(opts.locale === 'en' ? en : id, opts.messages);
-  return {
-    messages,
-    t: (key, params) => translate(messages, key, params),
+  // Reaktif agar `setLocale` langsung memperbarui semua komponen.
+  const i18n = reactive({
+    locale: opts.locale ?? ('id' as 'id' | 'en'),
+    messages: mergeMessages(opts.locale === 'en' ? en : id, opts.messages),
+  });
+  const ctx: MrcatzContext = {
+    get messages() {
+      return i18n.messages;
+    },
+    get locale() {
+      return i18n.locale;
+    },
+    t: (key, params) => translate(i18n.messages, key, params),
+    setLocale(locale) {
+      i18n.locale = locale;
+      i18n.messages = mergeMessages(locale === 'en' ? en : id, opts.messages);
+    },
     notify: opts.notify ?? pushToast,
     imageBaseUrl: opts.imageBaseUrl ?? '',
-    dateLocale: opts.dateLocale ?? (opts.locale === 'en' ? 'en-US' : 'id-ID'),
+    get dateLocale() {
+      return opts.dateLocale ?? (i18n.locale === 'en' ? 'en-US' : 'id-ID');
+    },
     icons: {
       set: opts.icons?.set ?? 'default',
       materialClass: opts.icons?.materialClass ?? 'material-symbols-outlined',
       custom: opts.icons?.custom ?? {},
     },
+    exportColors: opts.export?.colors ?? {},
   };
+  return ctx;
 }
 
 const fallback = createContext();
