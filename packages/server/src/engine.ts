@@ -15,7 +15,7 @@ import {
   type TableQuery,
   type TableSchema,
   type UtcOffset,
-} from '@mrc4tz/datatable-core';
+} from '@mrcatz/datatable-core';
 import { DataTableConfigError } from './errors';
 import { and, filterWhere, orderBy, searchWhere, timeFormatMessage, type Where } from './prisma-where';
 import {
@@ -49,7 +49,7 @@ export interface DataTableDefinition<TRow, TCtx> {
     relevance?: RelevanceConfig & { db: RawExecutor };
     /**
      * Mesin pencari eksternal (pengganti `driver => 'scout'`), mis.
-     * `meilisearchDriver(...)` dari `@mrc4tz/datatable-server/meilisearch`.
+     * `meilisearchDriver(...)` dari `@mrcatz/datatable-server/meilisearch`.
      * Tidak bisa digabung dengan `relevance`.
      */
     driver?: SearchDriver<TCtx>;

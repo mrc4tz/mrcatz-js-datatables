@@ -17,7 +17,7 @@ every page shows the Laravel and the JavaScript code side by side.
 | `configTable()` → `scoring` | `search.columns[].weight` |
 | `configTable()` → `typo_tolerance` | `search.typoTolerance` |
 | `configTable()` → `scoring` on joined columns (`customers.name`) | `search.relevance.joins` + `column: 'alias.column'` |
-| `search.driver = 'scout'` + `scout_model` | `search.driver: meilisearchDriver({ client, index })` (`@mrc4tz/datatable-server/meilisearch`) |
+| `search.driver = 'scout'` + `scout_model` | `search.driver: meilisearchDriver({ client, index })` (`@mrcatz/datatable-server/meilisearch`) |
 | `scout_max_results`, `filter_pushdown`, `date_field_map` | `maxResults`, `filterPushdown`, `dateFields` |
 | `mrcatz:meilisearch:configure` | `syncMeilisearchSettings(table, client?, index?)` |
 | `mrcatz:make-search-proxy` | not needed — your app indexes the documents (id = primary key) |

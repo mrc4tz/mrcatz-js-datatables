@@ -1,4 +1,4 @@
-import { splitKeywords, trigrams, type NormalizedSearch } from '@mrc4tz/datatable-core';
+import { splitKeywords, trigrams, type NormalizedSearch } from '@mrcatz/datatable-core';
 import { DataTableConfigError } from './errors';
 
 /**

@@ -4,7 +4,7 @@
  * diterapkan dengan Terapkan — tabel tidak di-query ulang tiap centang.
  */
 import { computed, ref, watch } from 'vue';
-import { highlight, type FilterSchema, type MultiValue } from '@mrc4tz/datatable-core';
+import { highlight, type FilterSchema, type MultiValue } from '@mrcatz/datatable-core';
 import { useMrcatz } from '../../config';
 import MrcPopover from '../MrcPopover.vue';
 import FilterTrigger from './FilterTrigger.vue';

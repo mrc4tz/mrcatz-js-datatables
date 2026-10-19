@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** Satu kontrol filter sesuai tipenya (markup sama dengan `datatable-filter.blade.php`). */
-import type { FilterSchema, FilterValue, MultiValue, RangeValue } from '@mrc4tz/datatable-core';
+import type { FilterSchema, FilterValue, MultiValue, RangeValue } from '@mrcatz/datatable-core';
 import { useMrcatz } from '../../config';
 import FilterMulti from './FilterMulti.vue';
 import FilterDateRange from './FilterDateRange.vue';

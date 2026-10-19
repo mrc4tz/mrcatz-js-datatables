@@ -98,7 +98,7 @@ export {
 export { buildXlsx, DEFAULT_EXPORT_COLORS, type ExportColors, type XlsxOptions } from './xlsx';
 export { isBuiltinIcon, type IconName, type BuiltinIcon, type IconSet } from './icons';
 // Re-export dari core agar halaman cukup mengimpor satu paket.
-export { filter, highlight, type FilterDefinition, type FilterSchema, type TableQuery, type TablePage, type SortRule } from '@mrc4tz/datatable-core';
+export { filter, highlight, type FilterDefinition, type FilterSchema, type TableQuery, type TablePage, type SortRule } from '@mrcatz/datatable-core';
 // Form builder: tipe field tambahan, helper error server, renderer kustom.
 export { emptyValue, type FieldSize, type ValidationRule, type DateRangeValue, type LatLngValue, type MapRadiusOptions } from './fields';
 export { toFormError, withFormErrors, type FormErrorOptions } from './validation';

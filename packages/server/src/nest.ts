@@ -6,7 +6,7 @@ import {
   type ExceptionFilter,
   type ExecutionContext,
 } from '@nestjs/common';
-import type { RawQuery } from '@mrc4tz/datatable-core';
+import type { RawQuery } from '@mrcatz/datatable-core';
 import { DataTableQueryError } from './errors';
 
 /**

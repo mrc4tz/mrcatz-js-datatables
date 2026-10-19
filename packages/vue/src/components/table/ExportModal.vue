@@ -6,7 +6,7 @@
  * Bila ada baris terpilih, cakupan "Sesuai Filter" hanya mengekspor pilihan itu.
  */
 import { computed, ref, watch } from 'vue';
-import type { TableQuery } from '@mrc4tz/datatable-core';
+import type { TableQuery } from '@mrcatz/datatable-core';
 import { useMrcatz } from '../../config';
 import type { DataTableController } from '../../composables/useDataTable';
 import { buildExportTable, downloadCsv, downloadXlsx, printTable, type ExportFormat, type ExportOptions } from '../../export';

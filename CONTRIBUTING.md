@@ -28,4 +28,4 @@ cd ../server       && npm publish --access public
 cd ../vue          && npm publish --access public
 ```
 
-`prepublishOnly` runs the build automatically. For the next release, bump `version` in all three packages (and the `@mrc4tz/datatable-core` range in `server` and `vue` when the core API changes), then repeat the steps above. Check the tarball contents first with `npm pack --dry-run`.
+`prepublishOnly` runs the build automatically. For the next release, bump `version` in all three packages (and the `@mrcatz/datatable-core` range in `server` and `vue` when the core API changes), then repeat the steps above. Check the tarball contents first with `npm pack --dry-run`.

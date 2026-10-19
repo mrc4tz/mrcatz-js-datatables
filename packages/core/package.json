@@ -1,5 +1,5 @@
 {
-  "name": "@mrc4tz/datatable-core",
+  "name": "@mrcatz/datatable-core",
   "version": "0.1.0",
   "description": "Protokol query, definisi filter, pencarian & highlight untuk MrCatz DataTable — dipakai bersama server dan client",
   "keywords": [

@@ -381,7 +381,7 @@ describe('cadangan tanpa entry opsional', () => {
     const ta = w.find('textarea');
     await ta.setValue('<p>hai</p>');
     expect(values.value.isi).toBe('<p>hai</p>');
-    expect(w.text()).toContain('@mrc4tz/datatable-vue/editor');
+    expect(w.text()).toContain('@mrcatz/datatable-vue/editor');
     const nums = w.findAll('input[type="number"]');
     await nums[0]!.setValue('1.5');
     expect(values.value.loc).toEqual({ lat: 1.5, lng: null });

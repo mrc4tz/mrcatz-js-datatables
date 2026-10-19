@@ -19,7 +19,7 @@ export default defineConfig({
         'vue',
         'vue-router',
         '@tanstack/vue-query',
-        '@mrc4tz/datatable-core',
+        '@mrcatz/datatable-core',
         // Peer opsional — dimuat lewat import() dinamis, tidak pernah dibundel.
         /^quill(\/.*)?$/,
         /^tinymce(\/.*)?$/,

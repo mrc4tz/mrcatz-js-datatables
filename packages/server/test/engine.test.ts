@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { buildRelevanceSql, DataTableConfigError, DataTableQueryError, defineDataTable, filter } from '../src';
-import { normalizeSearch } from '@mrc4tz/datatable-core';
+import { normalizeSearch } from '@mrcatz/datatable-core';
 
 function fakeModel(rows: Record<string, unknown>[] = []) {
   return {

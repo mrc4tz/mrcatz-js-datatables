@@ -14,8 +14,8 @@ export default defineConfig({
     alias: useDist
       ? {}
       : {
-          '@mrc4tz/datatable-core': src('core/src/index.ts'),
-          '@mrc4tz/datatable-vue': src('vue/src/index.ts'),
+          '@mrcatz/datatable-core': src('core/src/index.ts'),
+          '@mrcatz/datatable-vue': src('vue/src/index.ts'),
         },
   },
   server: { port: 5178 },

@@ -234,17 +234,17 @@ export const field = {
   chooser: make('chooser'),
   /**
    * Editor teks kaya berbasis Quill (pengganti `MrCatzFormField::editor()`). Butuh paket `quill`
-   * dan `import '@mrc4tz/datatable-vue/editor'` sekali di aplikasi.
+   * dan `import '@mrcatz/datatable-vue/editor'` sekali di aplikasi.
    */
   editor: make('editor'),
   /**
    * Editor lengkap berbasis TinyMCE (pengganti `MrCatzFormField::editorAdvance()`). Butuh paket
-   * `tinymce` dan `import '@mrc4tz/datatable-vue/editor-advanced'` sekali di aplikasi.
+   * `tinymce` dan `import '@mrcatz/datatable-vue/editor-advanced'` sekali di aplikasi.
    */
   editorAdvanced: make('editorAdvanced'),
   /**
    * Pemilih lokasi `{ lat, lng, radius? }` (pengganti `MrCatzFormField::mapPicker()`). Leaflet butuh
-   * paket `leaflet` dan `import '@mrc4tz/datatable-vue/map'` sekali di aplikasi.
+   * paket `leaflet` dan `import '@mrcatz/datatable-vue/map'` sekali di aplikasi.
    */
   map: (name: string, label?: string, opts: Opts = {}): FieldDef => ({ type: 'map', name, label, ...opts }),
 

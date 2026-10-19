@@ -4,7 +4,7 @@
  * simpan kombinasi pencarian/filter/urutan ke localStorage, per halaman.
  */
 import { computed, ref } from 'vue';
-import type { FilterValue, SortRule } from '@mrc4tz/datatable-core';
+import type { FilterValue, SortRule } from '@mrcatz/datatable-core';
 import { useMrcatz } from '../../config';
 import type { DataTableController } from '../../composables/useDataTable';
 import MrcIcon from '../MrcIcon.vue';

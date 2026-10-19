@@ -90,7 +90,7 @@ export function planScaffold(opts: ScaffoldOptions): ScaffoldFile[] {
   const files: ScaffoldFile[] = [
     {
       path: `${moduleDir}/${k}.table.ts`,
-      content: `import { defineDataTable, filter } from '@mrc4tz/datatable-server';
+      content: `import { defineDataTable, filter } from '@mrcatz/datatable-server';
 import type { PrismaService } from '${prismaImport}';
 
 /** Tabel ${label}: kolom pencarian, filter, dan urutan yang diizinkan. */
@@ -115,8 +115,8 @@ export type ${Name}Table = ReturnType<typeof create${Name}Table>;
     {
       path: `${moduleDir}/${k}.controller.ts`,
       content: `import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseFilters } from '@nestjs/common';
-import { DataTableExceptionFilter, DataTableParams } from '@mrc4tz/datatable-server/nest';
-import type { RawQuery } from '@mrc4tz/datatable-server';
+import { DataTableExceptionFilter, DataTableParams } from '@mrcatz/datatable-server/nest';
+import type { RawQuery } from '@mrcatz/datatable-server';
 import { PrismaService } from '${prismaImport}';
 import { create${Name}Table, type ${Name}Table } from './${k}.table';
 
@@ -185,7 +185,7 @@ export class ${Name}Module {}
     files.push({
       path: [webDir, ...sub, `${kPlural}.vue`].join('/'),
       content: `<script setup lang="ts">
-import { col, field, httpSource } from '@mrc4tz/datatable-vue';
+import { col, field, httpSource } from '@mrcatz/datatable-vue';
 
 const source = httpSource({
   url: '${url}',

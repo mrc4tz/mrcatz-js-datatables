@@ -27,22 +27,19 @@
     "apps/playground": {
       "name": "playground",
       "dependencies": {
-        "@mrc4tz/datatable-core": "^0.1.0",
-        "@mrc4tz/datatable-vue": "^0.1.0",
+        "@mrcatz/datatable-core": "^0.1.0",
+        "@mrcatz/datatable-vue": "^0.1.0",
       },
     },
     "packages/core": {
-      "name": "@mrc4tz/datatable-core",
+      "name": "@mrcatz/datatable-core",
       "version": "0.1.0",
     },
     "packages/server": {
-      "name": "@mrc4tz/datatable-server",
+      "name": "@mrcatz/datatable-server",
       "version": "0.1.0",
-      "bin": {
-        "mrcatz": "./dist/cli.js",
-      },
       "dependencies": {
-        "@mrc4tz/datatable-core": "^0.1.0",
+        "@mrcatz/datatable-core": "^0.1.0",
       },
       "peerDependencies": {
         "@nestjs/common": ">=10",
@@ -52,31 +49,23 @@
       ],
     },
     "packages/vue": {
-      "name": "@mrc4tz/datatable-vue",
+      "name": "@mrcatz/datatable-vue",
       "version": "0.1.0",
       "dependencies": {
-        "@mrc4tz/datatable-core": "^0.1.0",
+        "@mrcatz/datatable-core": "^0.1.0",
       },
       "devDependencies": {
-        "@types/leaflet": "^1.9.22",
-        "leaflet": "^1.9.4",
-        "quill": "^2.0.3",
-        "tinymce": "^7.9.3",
+        "@types/leaflet": "^1.9",
+        "leaflet": "^1.9",
+        "quill": "^2",
+        "tinymce": "^7",
       },
       "peerDependencies": {
         "@tanstack/vue-query": ">=5",
-        "daisyui": ">=5",
-        "leaflet": ">=1.9",
-        "quill": ">=2",
-        "tailwindcss": ">=4",
-        "tinymce": ">=7",
         "vue": ">=3.5",
         "vue-router": ">=4",
       },
       "optionalPeers": [
-        "leaflet",
-        "quill",
-        "tinymce",
         "vue-router",
       ],
     },
@@ -156,11 +145,11 @@
 
     "@lukeed/csprng": ["@lukeed/csprng@1.1.0", "", {}, "sha512-Z7C/xXCiGWsg0KuKsHTKJxbWhpI3Vs5GwLfOean7MGyVFGqdRgBbAjOCh6u4bbjPc/8MJ2pZmK/0DLdCbivLDA=="],
 
-    "@mrc4tz/datatable-core": ["@mrc4tz/datatable-core@workspace:packages/core"],
+    "@mrcatz/datatable-core": ["@mrcatz/datatable-core@workspace:packages/core"],
 
-    "@mrc4tz/datatable-server": ["@mrc4tz/datatable-server@workspace:packages/server"],
+    "@mrcatz/datatable-server": ["@mrcatz/datatable-server@workspace:packages/server"],
 
-    "@mrc4tz/datatable-vue": ["@mrc4tz/datatable-vue@workspace:packages/vue"],
+    "@mrcatz/datatable-vue": ["@mrcatz/datatable-vue@workspace:packages/vue"],
 
     "@napi-rs/lzma-linux-x64-gnu": ["@napi-rs/lzma-linux-x64-gnu@1.5.1", "", { "os": "linux", "cpu": "x64" }, "sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ=="],
 

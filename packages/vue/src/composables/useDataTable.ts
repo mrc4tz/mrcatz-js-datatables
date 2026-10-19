@@ -12,7 +12,7 @@ import {
   type SortRule,
   type TablePage,
   type TableQuery,
-} from '@mrc4tz/datatable-core';
+} from '@mrcatz/datatable-core';
 import type { ColumnDef } from '../columns';
 import type { DataSource } from '../sources';
 import { useUrlState } from './useUrlState';

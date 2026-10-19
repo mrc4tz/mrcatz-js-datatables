@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://www.npmjs.com/package/@mrc4tz/datatable-vue"><img src="https://img.shields.io/npm/v/@mrc4tz/datatable-vue?label=npm" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/@mrcatz/datatable-vue"><img src="https://img.shields.io/npm/v/@mrcatz/datatable-vue?label=npm" alt="npm version"></a>
   <a href="https://github.com/mrc4tz/mrcatz-js-datatables/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License"></a>
   <a href="https://datatable.catzoid.tech/?stack=js"><img src="https://img.shields.io/badge/docs-datatable.catzoid.tech-F57927" alt="Docs"></a>
   <a href="https://nuxt.com"><img src="https://img.shields.io/badge/Nuxt-4-00DC82?style=flat-square&logo=nuxt&logoColor=white" alt="Nuxt"></a>
@@ -8,7 +8,7 @@
   <a href="https://daisyui.com"><img src="https://img.shields.io/badge/DaisyUI-5-5A0EF8?style=flat-square&logo=daisyui&logoColor=white" alt="DaisyUI"></a>
 </p>
 
-# @mrc4tz/datatable-vue
+# @mrcatz/datatable-vue
 
 The web side of **[MrCatz DataTable for JavaScript](https://github.com/mrc4tz/mrcatz-js-datatables)** — **DataTable + Form Builder + CRUD** for **Vue 3 / Nuxt 4**, styled with **Tailwind CSS v4 + DaisyUI 5**.
 
@@ -25,7 +25,7 @@ The web side of **[MrCatz DataTable for JavaScript](https://github.com/mrc4tz/mr
 ## Quick install
 
 ```bash
-npm i @mrc4tz/datatable-vue @tanstack/vue-query
+npm i @mrcatz/datatable-vue @tanstack/vue-query
 npm i -D tailwindcss @tailwindcss/vite daisyui
 ```
 
@@ -33,13 +33,13 @@ npm i -D tailwindcss @tailwindcss/vite daisyui
 /* app/assets/css/main.css */
 @import 'tailwindcss';
 @plugin 'daisyui';
-@source '../../../node_modules/@mrc4tz/datatable-vue/dist'; /* adjust the relative path */
+@source '../../../node_modules/@mrcatz/datatable-vue/dist'; /* adjust the relative path */
 ```
 
 ```ts
 // app/plugins/mrcatz.ts
 import { VueQueryPlugin } from '@tanstack/vue-query';
-import { createMrcatz } from '@mrc4tz/datatable-vue';
+import { createMrcatz } from '@mrcatz/datatable-vue';
 
 export default defineNuxtPlugin((nuxt) => {
   nuxt.vueApp.use(VueQueryPlugin);
@@ -55,7 +55,7 @@ export default defineNuxtPlugin((nuxt) => {
 <MrcToaster />
 ```
 
-Pair it with [`@mrc4tz/datatable-server`](https://www.npmjs.com/package/@mrc4tz/datatable-server) on the API side.
+Pair it with [`@mrcatz/datatable-server`](https://www.npmjs.com/package/@mrcatz/datatable-server) on the API side.
 
 📖 **[Documentation →](https://datatable.catzoid.tech/?stack=js)**
 

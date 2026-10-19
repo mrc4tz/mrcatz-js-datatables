@@ -3,7 +3,7 @@
   "compilerOptions": {
     
     "jsx": "preserve", "types": [],
-    "paths": { "@mrc4tz/datatable-core": ["../core/src/index.ts"] }
+    "paths": { "@mrcatz/datatable-core": ["../core/src/index.ts"] }
   },
   "include": ["src/**/*.ts", "src/**/*.vue"]
 }

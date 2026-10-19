@@ -1,5 +1,5 @@
 {
-  "name": "@mrc4tz/datatable-vue",
+  "name": "@mrcatz/datatable-vue",
   "version": "0.1.0",
   "description": "DataTable + Form Builder + CRUD untuk Vue 3 / Nuxt 4 dengan Tailwind CSS v4 & daisyUI 5",
   "keywords": [
@@ -64,7 +64,7 @@
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
-    "@mrc4tz/datatable-core": "^0.1.0"
+    "@mrcatz/datatable-core": "^0.1.0"
   },
   "peerDependencies": {
     "@tanstack/vue-query": ">=5",

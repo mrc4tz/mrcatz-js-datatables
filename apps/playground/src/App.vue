@@ -12,7 +12,7 @@ import {
   type BulkAction,
   type DataSource,
   type FormValues,
-} from '@mrc4tz/datatable-vue';
+} from '@mrcatz/datatable-vue';
 import { KATEGORI, KECAMATAN, STATUS, makeLaporan, type Laporan } from './data';
 
 // ---------------------------------------------------------------- "database" in-memory

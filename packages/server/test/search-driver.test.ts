@@ -17,7 +17,7 @@ import {
   syncMeilisearchSettings,
   type MeilisearchClientLike,
 } from '../src/meilisearch';
-import { normalizeSearch } from '@mrc4tz/datatable-core';
+import { normalizeSearch } from '@mrcatz/datatable-core';
 
 type Row = { id: number; nama: string };
 
