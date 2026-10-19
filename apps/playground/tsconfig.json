@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "types": ["vite/client"],
+    "paths": {
+      "@mrcatz/datatable-core": ["../../packages/core/src/index.ts"],
+      "@mrcatz/datatable-vue": ["../../packages/vue/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue"]
+}

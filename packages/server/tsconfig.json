@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "experimentalDecorators": true, "emitDecoratorMetadata": true,
+    
+    "paths": { "@mrcatz/datatable-core": ["../core/src/index.ts"] }
+  },
+  "include": ["src", "test"]
+}

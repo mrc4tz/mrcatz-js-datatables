@@ -1,0 +1,63 @@
+{
+  "name": "@mrcatz/datatable-vue",
+  "version": "0.1.0",
+  "description": "DataTable + Form Builder + CRUD untuk Vue 3 / Nuxt 4 dengan Tailwind CSS v4 & daisyUI 5",
+  "keywords": [
+    "vue",
+    "nuxt",
+    "datatable",
+    "crud",
+    "form-builder",
+    "daisyui",
+    "tailwindcss",
+    "tanstack-query",
+    "mrcatz"
+  ],
+  "license": "MIT",
+  "author": "Ryan N.R.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrc4tz/mrcatz-js-datatables.git"
+  },
+  "homepage": "https://github.com/mrc4tz/mrcatz-js-datatables#readme",
+  "bugs": {
+    "url": "https://github.com/mrc4tz/mrcatz-js-datatables/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "bun --bun vite build && vue-tsc -p tsconfig.build.json",
+    "typecheck": "vue-tsc -p tsconfig.json",
+    "prepublishOnly": "bun run build"
+  },
+  "dependencies": {
+    "@mrcatz/datatable-core": "^0.1.0"
+  },
+  "peerDependencies": {
+    "@tanstack/vue-query": ">=5",
+    "vue": ">=3.5",
+    "vue-router": ">=4"
+  },
+  "peerDependenciesMeta": {
+    "vue-router": {
+      "optional": true
+    }
+  }
+}

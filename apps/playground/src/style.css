@@ -1,0 +1,7 @@
+@import 'tailwindcss';
+@plugin 'daisyui' {
+  themes: light --default, dark --prefersdark;
+}
+/* Komponen pustaka harus ikut dipindai agar kelas daisyUI/Tailwind-nya ter-generate. */
+@source '../../../packages/vue/src';
+@source '../../../packages/vue/dist';

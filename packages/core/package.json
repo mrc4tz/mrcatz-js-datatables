@@ -1,0 +1,54 @@
+{
+  "name": "@mrcatz/datatable-core",
+  "version": "0.1.0",
+  "description": "Protokol query, definisi filter, pencarian & highlight untuk MrCatz DataTable — dipakai bersama server dan client",
+  "keywords": [
+    "datatable",
+    "table",
+    "filter",
+    "search",
+    "pagination",
+    "query-string",
+    "mrcatz"
+  ],
+  "license": "MIT",
+  "author": "Ryan N.R.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrc4tz/mrcatz-js-datatables.git"
+  },
+  "homepage": "https://github.com/mrc4tz/mrcatz-js-datatables#readme",
+  "bugs": {
+    "url": "https://github.com/mrc4tz/mrcatz-js-datatables/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "bun --bun tsup",
+    "typecheck": "tsc -p tsconfig.json",
+    "prepublishOnly": "bun run build"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    
+    "jsx": "preserve", "types": [],
+    "paths": { "@mrcatz/datatable-core": ["../core/src/index.ts"] }
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue"]
+}

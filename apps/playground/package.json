@@ -1,0 +1,14 @@
+{
+  "name": "playground",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@mrcatz/datatable-core": "^0.1.0",
+    "@mrcatz/datatable-vue": "^0.1.0"
+  }
+}

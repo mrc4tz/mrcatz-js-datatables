@@ -1,0 +1,75 @@
+{
+  "name": "@mrcatz/datatable-server",
+  "version": "0.1.0",
+  "description": "Engine MrCatz DataTable untuk Prisma (filter, pencarian, relevansi PostgreSQL, multi-sort) + integrasi NestJS",
+  "keywords": [
+    "datatable",
+    "prisma",
+    "nestjs",
+    "pagination",
+    "filter",
+    "search",
+    "mrcatz"
+  ],
+  "license": "MIT",
+  "author": "Ryan N.R.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrc4tz/mrcatz-js-datatables.git"
+  },
+  "homepage": "https://github.com/mrc4tz/mrcatz-js-datatables#readme",
+  "bugs": {
+    "url": "https://github.com/mrc4tz/mrcatz-js-datatables/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./nest": {
+      "import": {
+        "types": "./dist/nest.d.ts",
+        "default": "./dist/nest.js"
+      },
+      "require": {
+        "types": "./dist/nest.d.cts",
+        "default": "./dist/nest.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "bun --bun tsup",
+    "typecheck": "tsc -p tsconfig.json",
+    "prepublishOnly": "bun run build"
+  },
+  "dependencies": {
+    "@mrcatz/datatable-core": "^0.1.0"
+  },
+  "peerDependencies": {
+    "@nestjs/common": ">=10"
+  },
+  "peerDependenciesMeta": {
+    "@nestjs/common": {
+      "optional": true
+    }
+  }
+}
