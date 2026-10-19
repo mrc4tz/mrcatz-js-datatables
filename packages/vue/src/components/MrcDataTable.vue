@@ -16,7 +16,7 @@
  * />
  */
 import { computed, nextTick, ref, useSlots, watch } from 'vue';
-import type { FilterSchema, FilterValue, SortRule, TablePage } from '@mrcatz/datatable-core';
+import type { FilterSchema, FilterValue, SortRule, TablePage } from '@mrc4tz/datatable-core';
 import { useMrcatz } from '../config';
 import { allowed, cellValue, type CellContext, type ColumnDef } from '../columns';
 import type { DataSource } from '../sources';

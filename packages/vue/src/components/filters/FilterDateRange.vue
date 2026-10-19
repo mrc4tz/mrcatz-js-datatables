@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** Filter rentang tanggal (pengganti `createDateRange`) — popover shortcut + dua input. */
 import { computed, ref, watch } from 'vue';
-import type { FilterSchema, RangeValue } from '@mrcatz/datatable-core';
+import type { FilterSchema, RangeValue } from '@mrc4tz/datatable-core';
 import { useMrcatz } from '../../config';
 import MrcPopover from '../MrcPopover.vue';
 import FilterTrigger from './FilterTrigger.vue';

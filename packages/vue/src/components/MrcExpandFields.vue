@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** Isi baris expand (pengganti `getExpandView` / `datatable-expand.blade.php`). */
-import { getPath } from '@mrcatz/datatable-core';
+import { getPath } from '@mrc4tz/datatable-core';
 import { useMrcatz } from '../config';
 import { resolveImageUrl, TONE_BTN } from '../columns';
 import type { ExpandField } from '../expand';

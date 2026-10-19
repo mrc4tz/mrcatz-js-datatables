@@ -13,7 +13,7 @@ import {
   type ResolvedValue,
   type SortRule,
   type UtcOffset,
-} from '@mrcatz/datatable-core';
+} from '@mrc4tz/datatable-core';
 import { DataTableConfigError, DataTableQueryError } from './errors';
 
 /** Potongan `where` Prisma. Sengaja longgar agar bekerja dengan model apa pun. */

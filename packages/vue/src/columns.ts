@@ -1,5 +1,5 @@
 import type { VNodeChild } from 'vue';
-import { getPath } from '@mrcatz/datatable-core';
+import { getPath } from '@mrc4tz/datatable-core';
 
 export type Align = 'left' | 'center' | 'right';
 /** Di mana kolom ditampilkan: tabel desktop, kartu mobile, atau keduanya. */

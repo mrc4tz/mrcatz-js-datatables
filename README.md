@@ -1,6 +1,6 @@
 <p align="center">
-  <a href="https://www.npmjs.com/package/@mrcatz/datatable-vue"><img src="https://img.shields.io/npm/v/@mrcatz/datatable-vue?label=npm" alt="npm version"></a>
-  <a href="https://www.npmjs.com/package/@mrcatz/datatable-vue"><img src="https://img.shields.io/npm/dm/@mrcatz/datatable-vue" alt="npm downloads"></a>
+  <a href="https://www.npmjs.com/package/@mrc4tz/datatable-vue"><img src="https://img.shields.io/npm/v/@mrc4tz/datatable-vue?label=npm" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/@mrc4tz/datatable-vue"><img src="https://img.shields.io/npm/dm/@mrc4tz/datatable-vue" alt="npm downloads"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License"></a>
   <a href="https://datatable.catzoid.tech/?stack=js"><img src="https://img.shields.io/badge/docs-datatable.catzoid.tech-F57927" alt="Docs"></a>
   <a href="https://nestjs.com"><img src="https://img.shields.io/badge/NestJS-10%2B-E0234E?style=flat-square&logo=nestjs&logoColor=white" alt="NestJS"></a>
@@ -28,9 +28,9 @@ A complete, opinionated DataTable + CRUD toolkit for TypeScript stacks. Bundles 
 
 | Package | Where | What it does |
 |---|---|---|
-| [`@mrcatz/datatable-server`](packages/server) | NestJS API | `defineDataTable()` on a Prisma model: search, filters, sort whitelist, paging, export rows, PostgreSQL relevance, Meilisearch driver, the `mrcatz` CLI |
-| [`@mrcatz/datatable-vue`](packages/vue) | Nuxt / Vue 3 | `<MrcDataTable>`, `<MrcCrudTable>`, `<MrcForm>`, `col.*`, `field.*`, `filter.*` — styled with Tailwind CSS + DaisyUI |
-| [`@mrcatz/datatable-core`](packages/core) | both | Framework-free query protocol, filter definitions, search & date helpers (installed automatically) |
+| [`@mrc4tz/datatable-server`](packages/server) | NestJS API | `defineDataTable()` on a Prisma model: search, filters, sort whitelist, paging, export rows, PostgreSQL relevance, Meilisearch driver, the `mrcatz` CLI |
+| [`@mrc4tz/datatable-vue`](packages/vue) | Nuxt / Vue 3 | `<MrcDataTable>`, `<MrcCrudTable>`, `<MrcForm>`, `col.*`, `field.*`, `filter.*` — styled with Tailwind CSS + DaisyUI |
+| [`@mrc4tz/datatable-core`](packages/core) | both | Framework-free query protocol, filter definitions, search & date helpers (installed automatically) |
 
 Think of it as **"Filament's CRUD productivity, but you keep full control over your stack."** You choose your DaisyUI theme, your auth, your API shape — MrCatz slots into your existing Nest + Nuxt app instead of replacing it.
 
@@ -52,13 +52,13 @@ Think of it as **"Filament's CRUD productivity, but you keep full control over y
 **API (NestJS + Prisma)**
 
 ```bash
-npm i @mrcatz/datatable-server
+npm i @mrc4tz/datatable-server
 ```
 
 **Web (Nuxt 4)** — Tailwind CSS v4 + DaisyUI 5 are required: the components ship class names, your build compiles them.
 
 ```bash
-npm i @mrcatz/datatable-vue @tanstack/vue-query
+npm i @mrc4tz/datatable-vue @tanstack/vue-query
 npm i -D tailwindcss @tailwindcss/vite daisyui
 ```
 
@@ -76,7 +76,7 @@ export default defineNuxtConfig({
 /* app/assets/css/main.css */
 @import 'tailwindcss';
 @plugin 'daisyui';
-@source '../../../node_modules/@mrcatz/datatable-vue/dist';
+@source '../../../node_modules/@mrc4tz/datatable-vue/dist';
 ```
 
 Register the plugin (it replaces `config/mrcatz.php`) and mount `<MrcToaster />` once in your layout for toasts and the image lightbox:
@@ -84,7 +84,7 @@ Register the plugin (it replaces `config/mrcatz.php`) and mount `<MrcToaster />`
 ```ts
 // app/plugins/mrcatz.ts
 import { VueQueryPlugin } from '@tanstack/vue-query';
-import { createMrcatz } from '@mrcatz/datatable-vue';
+import { createMrcatz } from '@mrc4tz/datatable-vue';
 
 export default defineNuxtPlugin((nuxt) => {
   nuxt.vueApp.use(VueQueryPlugin);
@@ -147,10 +147,10 @@ Coming from the Laravel package? **[MIGRATING.md](MIGRATING.md)** maps every Lar
 ## Optional dependencies
 
 ```bash
-npm i meilisearch   # Meilisearch search driver (beta) — @mrcatz/datatable-server/meilisearch
-npm i quill         # Rich text editor field — import '@mrcatz/datatable-vue/editor'
-npm i tinymce       # Advanced rich text editor — import '@mrcatz/datatable-vue/editor-advanced'
-npm i leaflet       # Map picker field — import '@mrcatz/datatable-vue/map'
+npm i meilisearch   # Meilisearch search driver (beta) — @mrc4tz/datatable-server/meilisearch
+npm i quill         # Rich text editor field — import '@mrc4tz/datatable-vue/editor'
+npm i tinymce       # Advanced rich text editor — import '@mrc4tz/datatable-vue/editor-advanced'
+npm i leaflet       # Map picker field — import '@mrc4tz/datatable-vue/map'
 ```
 
 ## Built with Claude

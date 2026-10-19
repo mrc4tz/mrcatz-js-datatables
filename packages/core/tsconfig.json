@@ -3,7 +3,7 @@
   "compilerOptions": {
     
     
-    "paths": { "@mrcatz/datatable-core": ["../core/src/index.ts"] }
+    "paths": { "@mrc4tz/datatable-core": ["../core/src/index.ts"] }
   },
   "include": ["src", "test"]
 }

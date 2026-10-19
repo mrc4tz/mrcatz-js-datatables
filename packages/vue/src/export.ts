@@ -1,4 +1,4 @@
-import { toCsv, type CsvOptions } from '@mrcatz/datatable-core';
+import { toCsv, type CsvOptions } from '@mrc4tz/datatable-core';
 import { displayValue, type ColumnDef } from './columns';
 import { buildXlsx, resolveExportColors, type ExportColors } from './xlsx';
 

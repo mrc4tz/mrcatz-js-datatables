@@ -1,12 +1,12 @@
 <p align="center">
-  <a href="https://www.npmjs.com/package/@mrcatz/datatable-server"><img src="https://img.shields.io/npm/v/@mrcatz/datatable-server?label=npm" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/@mrc4tz/datatable-server"><img src="https://img.shields.io/npm/v/@mrc4tz/datatable-server?label=npm" alt="npm version"></a>
   <a href="https://github.com/mrc4tz/mrcatz-js-datatables/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License"></a>
   <a href="https://datatable.catzoid.tech/?stack=js"><img src="https://img.shields.io/badge/docs-datatable.catzoid.tech-F57927" alt="Docs"></a>
   <a href="https://nestjs.com"><img src="https://img.shields.io/badge/NestJS-10%2B-E0234E?style=flat-square&logo=nestjs&logoColor=white" alt="NestJS"></a>
   <a href="https://www.prisma.io"><img src="https://img.shields.io/badge/Prisma-7-2D3748?style=flat-square&logo=prisma&logoColor=white" alt="Prisma"></a>
 </p>
 
-# @mrcatz/datatable-server
+# @mrc4tz/datatable-server
 
 The API side of **[MrCatz DataTable for JavaScript](https://github.com/mrc4tz/mrcatz-js-datatables)** — **Prisma** engine + **NestJS** helpers.
 
@@ -22,14 +22,14 @@ The API side of **[MrCatz DataTable for JavaScript](https://github.com/mrc4tz/mr
 ## Quick install
 
 ```bash
-npm i @mrcatz/datatable-server
+npm i @mrc4tz/datatable-server
 ```
 
 ```ts
 // products.controller.ts
 import { Controller, Get, UseFilters } from '@nestjs/common';
-import { defineDataTable, filter, type RawQuery } from '@mrcatz/datatable-server';
-import { DataTableExceptionFilter, DataTableParams } from '@mrcatz/datatable-server/nest';
+import { defineDataTable, filter, type RawQuery } from '@mrc4tz/datatable-server';
+import { DataTableExceptionFilter, DataTableParams } from '@mrc4tz/datatable-server/nest';
 
 @Controller('products')
 @UseFilters(DataTableExceptionFilter)
@@ -55,7 +55,7 @@ const createTable = (prisma: PrismaService) =>
   });
 ```
 
-Pair it with [`@mrcatz/datatable-vue`](https://www.npmjs.com/package/@mrcatz/datatable-vue) on the web side.
+Pair it with [`@mrc4tz/datatable-vue`](https://www.npmjs.com/package/@mrc4tz/datatable-vue) on the web side.
 
 📖 **[Documentation →](https://datatable.catzoid.tech/?stack=js)**
 

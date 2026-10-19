@@ -27,6 +27,6 @@ export {
   type RawQuery,
   type TablePage,
   type TableQuery,
-} from '@mrcatz/datatable-core';
+} from '@mrc4tz/datatable-core';
 export { planScaffold, type ScaffoldOptions, type ScaffoldFile } from './scaffold';
 export { editorImages, localDiskStorage, EditorImageError, type EditorImages, type EditorImagesOptions, type EditorImageStorage, type UploadedImage } from './editor-images';

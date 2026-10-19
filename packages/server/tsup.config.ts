@@ -10,7 +10,7 @@ export default defineConfig([
     target: 'es2022',
     // Satu salinan kelas error untuk index, nest & meilisearch (instanceof tetap valid di CJS).
     splitting: true,
-    external: ['@mrcatz/datatable-core', '@nestjs/common'],
+    external: ['@mrc4tz/datatable-core', '@nestjs/common'],
   },
   {
     // CLI `mrcatz make|remove` (pengganti `php artisan mrcatz:make`).

@@ -8,7 +8,7 @@
     "typecheck": "vue-tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@mrcatz/datatable-core": "^0.1.0",
-    "@mrcatz/datatable-vue": "^0.1.0"
+    "@mrc4tz/datatable-core": "^0.1.0",
+    "@mrc4tz/datatable-vue": "^0.1.0"
   }
 }

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { h } from 'vue';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
-import { filter } from '@mrcatz/datatable-core';
+import { filter } from '@mrc4tz/datatable-core';
 import { MrcDataTable, MrcExpandFields, bulkAction, buildXlsx, col, createMrcatz, memorySource, staticFilters } from '../src';
 import { presetRangeFor, presetsFor } from '../src/components/filters/dateUtils';
 

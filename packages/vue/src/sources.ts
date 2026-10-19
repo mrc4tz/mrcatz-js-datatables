@@ -9,7 +9,7 @@ import {
   type TablePage,
   type TableQuery,
   type TableSchema,
-} from '@mrcatz/datatable-core';
+} from '@mrc4tz/datatable-core';
 
 /**
  * Sumber data tabel. Komponen tidak peduli datanya dari API atau array lokal —

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** Panel filter yang dibuka dari tombol filter di toolbar (pengganti `#dtFilter`). */
 import { computed, onBeforeUnmount } from 'vue';
-import type { FilterSchema, FilterValue } from '@mrcatz/datatable-core';
+import type { FilterSchema, FilterValue } from '@mrc4tz/datatable-core';
 import type { DataTableController } from '../../composables/useDataTable';
 import FilterField from './FilterField.vue';
 

@@ -11,7 +11,7 @@ import {
   type NormalizedSearch,
   type ResolvedValue,
   type UtcOffset,
-} from '@mrcatz/datatable-core';
+} from '@mrc4tz/datatable-core';
 import { DataTableConfigError, DataTableQueryError } from './errors';
 import type { Where } from './prisma-where';
 import type { ActiveFilter, SearchDriver, SearchDriverResult, SearchDriverTableInfo } from './search-driver';
@@ -25,7 +25,7 @@ import type { ActiveFilter, SearchDriver, SearchDriverResult, SearchDriverTableI
  *
  * @example
  * import { MeiliSearch } from 'meilisearch';
- * import { meilisearchDriver } from '@mrcatz/datatable-server/meilisearch';
+ * import { meilisearchDriver } from '@mrc4tz/datatable-server/meilisearch';
  *
  * defineDataTable({
  *   model: prisma.product,

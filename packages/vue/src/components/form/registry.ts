@@ -5,7 +5,7 @@ import type { FieldType } from '../../fields';
  * Renderer field tambahan yang bergantung pada paket opsional (Quill, TinyMCE,
  * Leaflet). Paket inti tidak mengimpor apa pun dari library tersebut supaya
  * bundler aplikasi tidak gagal bila paketnya tidak terpasang; entry
- * `@mrcatz/datatable-vue/editor`, `/editor-advanced`, dan `/map` mendaftarkan
+ * `@mrc4tz/datatable-vue/editor`, `/editor-advanced`, dan `/map` mendaftarkan
  * komponennya sendiri saat diimpor.
  *
  * Kontrak komponen: prop `field`, `modelValue`, `disabled`, `invalid`,

@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
-import { filter } from '@mrcatz/datatable-core';
+import { filter } from '@mrc4tz/datatable-core';
 import { MrcDataTable, col, createMrcatz, memorySource } from '../src';
 
 const rows = [

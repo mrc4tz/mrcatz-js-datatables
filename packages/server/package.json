@@ -1,5 +1,5 @@
 {
-  "name": "@mrcatz/datatable-server",
+  "name": "@mrc4tz/datatable-server",
   "version": "0.1.0",
   "description": "Engine MrCatz DataTable untuk Prisma (filter, pencarian, relevansi PostgreSQL, multi-sort) + integrasi NestJS",
   "keywords": [
@@ -86,7 +86,7 @@
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
-    "@mrcatz/datatable-core": "^0.1.0"
+    "@mrc4tz/datatable-core": "^0.1.0"
   },
   "peerDependencies": {
     "@nestjs/common": ">=10"

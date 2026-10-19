@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** Isi satu sel sesuai jenis kolom. Slot `#cell-{id}` ditangani oleh induknya. */
 import { computed, h, type FunctionalComponent, type VNodeChild } from 'vue';
-import { getPath } from '@mrcatz/datatable-core';
+import { getPath } from '@mrc4tz/datatable-core';
 import { useMrcatz } from '../../config';
 import { allowed, cellValue, displayValue, resolveImageUrl, TONE_BTN, type CellContext, type ColumnDef, type Tone } from '../../columns';
 import MrcHighlight from '../MrcHighlight.vue';

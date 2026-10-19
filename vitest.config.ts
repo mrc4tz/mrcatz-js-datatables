@@ -9,9 +9,9 @@ export default defineConfig({
   resolve: {
     // Test memakai source langsung, bukan dist hasil build.
     alias: {
-      '@mrcatz/datatable-core': src('core'),
-      '@mrcatz/datatable-server': src('server'),
-      '@mrcatz/datatable-vue': src('vue'),
+      '@mrc4tz/datatable-core': src('core'),
+      '@mrc4tz/datatable-server': src('server'),
+      '@mrc4tz/datatable-vue': src('vue'),
     },
   },
   test: { include: ['packages/*/test/**/*.test.ts'] },

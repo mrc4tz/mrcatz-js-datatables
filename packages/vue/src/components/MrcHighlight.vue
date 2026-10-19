@@ -5,7 +5,7 @@
  * diatur lewat `--mrcatz-highlight-bg` / `--mrcatz-highlight-color`.
  */
 import { computed } from 'vue';
-import { highlight } from '@mrcatz/datatable-core';
+import { highlight } from '@mrc4tz/datatable-core';
 
 const props = defineProps<{ text: unknown; search: string }>();
 const segments = computed(() => highlight(props.text, props.search));

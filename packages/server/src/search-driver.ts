@@ -6,7 +6,7 @@ import type {
   ResolvedValue,
   TableQuery,
   UtcOffset,
-} from '@mrcatz/datatable-core';
+} from '@mrc4tz/datatable-core';
 import type { Where } from './prisma-where';
 
 /**

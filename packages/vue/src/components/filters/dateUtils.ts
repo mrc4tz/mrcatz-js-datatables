@@ -1,4 +1,4 @@
-import type { DateFormat, RangeValue } from '@mrcatz/datatable-core';
+import type { DateFormat, RangeValue } from '@mrc4tz/datatable-core';
 
 /** Jenis `<input>` native untuk tiap format tanggal. */
 export function inputType(format: DateFormat | undefined): string {
