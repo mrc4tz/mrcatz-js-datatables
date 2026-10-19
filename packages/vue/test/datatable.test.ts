@@ -48,12 +48,13 @@ describe('MrcDataTable', () => {
   it('pencarian men-highlight kata kunci tanpa HTML mentah', async () => {
     const w = setup({ searchMode: 'submit' });
     await tick();
-    const input = w.find('input[type="search"]');
-    await input.setValue('hartono');
-    await w.find('form[role="search"]').trigger('submit');
+    // Toolbar desktop (form kedua; yang pertama milik toolbar mobile).
+    const form = w.findAll('form')[1]!;
+    await form.find('input[type="text"]').setValue('hartono');
+    await form.trigger('submit');
     await tick();
     expect(bodyRows(w)).toHaveLength(1);
-    expect(w.find('mark').text()).toBe('Hartono');
+    expect(w.find('tbody .mrcatz-search-highlight').text()).toBe('Hartono');
     w.unmount();
   });
 
@@ -69,17 +70,18 @@ describe('MrcDataTable', () => {
     w.unmount();
   });
 
-  it('klik header mengurutkan asc lalu desc', async () => {
+  it('klik header mengurutkan desc lalu asc (sama dengan versi Laravel)', async () => {
     const w = setup();
     await tick();
     const th = w.findAll('thead th').find((t) => t.text().startsWith('Nama'))!;
-    await th.trigger('click');
-    await tick();
-    expect(bodyRows(w)[0]!.text()).toContain('Budi Hartono');
-    await th.trigger('click');
+    await th.find('button').trigger('click');
     await tick();
     expect(bodyRows(w)[0]!.text()).toContain('Siti Aminah');
     expect(th.attributes('aria-sort')).toBe('descending');
+    await th.find('button').trigger('click');
+    await tick();
+    expect(bodyRows(w)[0]!.text()).toContain('Budi Hartono');
+    expect(th.attributes('aria-sort')).toBe('ascending');
     w.unmount();
   });
 

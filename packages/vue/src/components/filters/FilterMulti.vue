@@ -1,14 +1,13 @@
 <script setup lang="ts">
 /**
- * Filter multi-pilihan (pengganti `createCheck`). Pilihan disusun dulu di
- * draf lalu diterapkan dengan tombol Terapkan — tabel tidak di-query ulang
- * pada setiap centang.
+ * Filter multi-pilihan (pengganti `createCheck`). Pilihan disusun di draf lalu
+ * diterapkan dengan Terapkan — tabel tidak di-query ulang tiap centang.
  */
 import { computed, ref, watch } from 'vue';
-import type { FilterSchema, MultiValue } from '@mrcatz/datatable-core';
+import { highlight, type FilterSchema, type MultiValue } from '@mrcatz/datatable-core';
 import { useMrcatz } from '../../config';
 import MrcPopover from '../MrcPopover.vue';
-import MrcIcon from '../MrcIcon.vue';
+import FilterTrigger from './FilterTrigger.vue';
 
 const props = defineProps<{ filter: FilterSchema; value?: MultiValue }>();
 const emit = defineEmits<{ change: [value: MultiValue | undefined] }>();
@@ -35,13 +34,13 @@ watch(open, (v) => {
   query.value = '';
 });
 
-const summary = computed(() => {
+const hasValue = computed(() => !!props.value?.values.length);
+const text = computed(() => {
   const vals = props.value?.values ?? [];
-  if (!vals.length) return t('filter.all');
-  const labels = vals.map((v) => options.value.find((o) => String(o.value) === String(v))?.label ?? String(v));
-  const head = labels.slice(0, 2).join(', ');
-  const more = labels.length > 2 ? ` ${t('filter.plusMore', { count: labels.length - 2 })}` : '';
-  return `${props.value?.exclude ? t('filter.notPrefix') : ''}${head}${more}`;
+  if (!vals.length) return t('filter.pickOptions');
+  const names = vals.map((v) => options.value.find((o) => String(o.value) === String(v))?.label ?? String(v));
+  const txt = names.length <= 2 ? names.join(', ') : `${names[0]} ${t('filter.plusMore', { count: names.length - 1 })}`;
+  return props.value?.exclude ? t('filter.notPrefix') + txt : txt;
 });
 
 function toggle(v: string) {
@@ -50,70 +49,81 @@ function toggle(v: string) {
 function selectAllVisible() {
   draft.value = [...new Set([...draft.value, ...visible.value.map((o) => String(o.value))])];
 }
-function apply(close: () => void) {
+function clearVisible() {
+  const vis = new Set(visible.value.map((o) => String(o.value)));
+  draft.value = draft.value.filter((v) => !vis.has(v));
+}
+function apply() {
   emit('change', draft.value.length ? { values: draft.value, exclude: exclude.value } : undefined);
-  close();
+  open.value = false;
+}
+function reset() {
+  emit('change', undefined);
+  open.value = false;
 }
 </script>
 
 <template>
-  <MrcPopover v-model:open="open" width="17rem" class="w-full">
-    <template #trigger="{ toggle: toggleOpen }">
-      <button
-        type="button"
-        class="select select-sm w-full text-left"
-        :class="{ 'text-base-content/50': !value?.values.length, 'select-primary': value?.values.length }"
-        @click="toggleOpen"
-      >
-        <span class="truncate">{{ summary }}</span>
-      </button>
+  <MrcPopover v-model:open="open" width="20rem" class="w-full" panel-class="bg-base-100 border-base-300 overflow-hidden rounded-xl border shadow-2xl">
+    <template #trigger>
+      <FilterTrigger icon="checklist" :text="text" :active="open" :has-value="hasValue" :clear-label="t('filter.clear')" @toggle="open = !open" @clear="reset" />
     </template>
 
-    <template #default="{ close }">
-      <div class="flex flex-col gap-2">
-        <div v-if="filter.allowExclude" class="join w-full">
-          <button type="button" class="btn btn-xs join-item flex-1" :class="!exclude ? 'btn-primary' : 'btn-ghost'" @click="exclude = false">
-            {{ t('filter.include') }}
-          </button>
-          <button type="button" class="btn btn-xs join-item flex-1" :class="exclude ? 'btn-error' : 'btn-ghost'" @click="exclude = true">
-            {{ t('filter.exclude') }}
-          </button>
-        </div>
+    <div class="flex flex-col">
+      <div v-if="filter.allowExclude" class="border-base-300 bg-base-200/50 flex items-stretch gap-1 border-b p-2">
+        <button
+          type="button"
+          class="flex-1 rounded px-2 py-1 text-xs transition-colors"
+          :class="!exclude ? 'bg-primary text-primary-content font-semibold' : 'text-base-content/60 hover:bg-base-300/50'"
+          @click="exclude = false"
+        >
+          {{ t('filter.include') }}
+        </button>
+        <button
+          type="button"
+          class="flex-1 rounded px-2 py-1 text-xs transition-colors"
+          :class="exclude ? 'bg-error text-error-content font-semibold' : 'text-base-content/60 hover:bg-base-300/50'"
+          @click="exclude = true"
+        >
+          {{ t('filter.exclude') }}
+        </button>
+      </div>
 
-        <label v-if="showSearch" class="input input-sm w-full">
-          <MrcIcon name="search" :size="14" class="opacity-50" />
-          <input v-model="query" type="search" :placeholder="t('filter.searchOption')" />
-        </label>
+      <div v-if="showSearch" class="border-base-300 border-b p-2">
+        <input v-model="query" type="text" class="input input-bordered input-sm w-full text-sm" :placeholder="t('filter.searchOption')" />
+      </div>
 
-        <div class="text-base-content/60 flex items-center justify-between text-xs">
-          <span>{{ t('filter.selected', { count: draft.length, total: options.length }) }}</span>
-          <span class="flex gap-2">
-            <button type="button" class="link link-hover" @click="selectAllVisible">{{ t('filter.selectAll') }}</button>
-            <button type="button" class="link link-hover" @click="draft = []">{{ t('filter.clearSelection') }}</button>
+      <div class="max-h-[16rem] overflow-y-auto">
+        <label v-for="o in visible" :key="String(o.value)" class="hover:bg-base-200 flex cursor-pointer items-start gap-2 px-3 py-2 text-sm">
+          <input
+            type="checkbox"
+            class="checkbox checkbox-sm checkbox-primary shrink-0"
+            :checked="draft.includes(String(o.value))"
+            @change="toggle(String(o.value))"
+          />
+          <span class="min-w-0 flex-1 leading-5 break-words">
+            <template v-for="(s, i) in highlight(o.label, query)" :key="i">
+              <mark v-if="s.match" class="bg-warning/40 text-base-content rounded px-0.5">{{ s.text }}</mark>
+              <template v-else>{{ s.text }}</template>
+            </template>
           </span>
-        </div>
+        </label>
+        <div v-if="!visible.length" class="text-base-content/50 px-3 py-6 text-center text-sm">{{ t('filter.noMatch', { query }) }}</div>
+      </div>
 
-        <ul class="max-h-56 overflow-y-auto">
-          <li v-for="o in visible" :key="String(o.value)">
-            <label class="hover:bg-base-200 flex cursor-pointer items-center gap-2 rounded-field px-2 py-1.5 text-sm">
-              <input
-                type="checkbox"
-                class="checkbox checkbox-xs"
-                :class="exclude ? 'checkbox-error' : 'checkbox-primary'"
-                :checked="draft.includes(String(o.value))"
-                @change="toggle(String(o.value))"
-              />
-              <span class="truncate" :class="{ 'line-through opacity-70': exclude && draft.includes(String(o.value)) }">{{ o.label }}</span>
-            </label>
-          </li>
-          <li v-if="!visible.length" class="text-base-content/50 px-2 py-2 text-xs">{{ t('filter.noMatch', { query }) }}</li>
-        </ul>
-
-        <div class="flex justify-end gap-2 pt-1">
-          <button type="button" class="btn btn-ghost btn-xs" @click="emit('change', undefined); close()">{{ t('action.reset') }}</button>
-          <button type="button" class="btn btn-primary btn-xs" @click="apply(close)">{{ t('action.apply') }}</button>
+      <div class="border-base-300 bg-base-200/30 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t px-3 py-2 text-xs">
+        <span class="text-base-content/60 whitespace-nowrap">{{ t('filter.selected', { count: draft.length, total: options.length }) }}</span>
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" class="text-primary whitespace-nowrap hover:underline" @click="selectAllVisible">{{ t('filter.selectAll') }}</button>
+          <span class="text-base-content/30">·</span>
+          <button type="button" class="text-primary whitespace-nowrap hover:underline" @click="clearVisible">{{ t('filter.clearSelection') }}</button>
         </div>
       </div>
-    </template>
+
+      <div class="border-base-300 flex gap-2 border-t p-2">
+        <button type="button" class="btn btn-ghost btn-sm flex-1" @click="reset">{{ t('filter.resetFilter') }}</button>
+        <button type="button" class="btn btn-primary btn-sm flex-1" @click="apply">{{ t('filter.apply') }}</button>
+      </div>
+    </div>
   </MrcPopover>
 </template>

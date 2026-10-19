@@ -23,6 +23,7 @@ import { errorMessage, MrcFormError, type FormErrors, type StandardSchema } from
 import MrcDataTable from './MrcDataTable.vue';
 import MrcModal from './MrcModal.vue';
 import MrcConfirm from './MrcConfirm.vue';
+import MrcIcon from './MrcIcon.vue';
 import MrcForm from './form/MrcForm.vue';
 
 defineOptions({ inheritAttrs: false });
@@ -45,10 +46,10 @@ const props = withDefaults(
     deleteLabel?: (row: T) => string;
     formTitle?: (mode: CrudMode, row: T | null) => string;
     formSize?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
-    /** Tutup form saat klik di luar. Default false agar isian tidak hilang. */
+    /** Tutup form saat klik di luar / Esc (pengganti `$modalDismissOnClickOutside`). Default false. */
     formDismissible?: boolean;
   }>(),
-  { formSize: 'md', formDismissible: false },
+  { formSize: 'lg', formDismissible: false },
 );
 const emit = defineEmits<{ saved: [mode: CrudMode, values: FormValues, result: unknown]; deleted: [rows: T[]] }>();
 const attrs = useAttrs();
@@ -106,12 +107,12 @@ async function save(payload: FormValues) {
     const result =
       mode.value === 'create' ? await props.create?.(payload) : await props.update?.(current.value as T, payload);
     formOpen.value = false;
-    notify('success', t(mode.value === 'create' ? 'crud.created' : 'crud.updated', { entity: props.entity }));
+    notify('success', `${props.entity} ${t('crud.success')} ${t(mode.value === 'create' ? 'crud.added' : 'crud.updated')}`);
     emit('saved', mode.value, payload, result);
     await tableRef.value?.refresh();
   } catch (e) {
     if (e instanceof MrcFormError) errors.value = e.fields;
-    notify('error', errorMessage(e, t('crud.failed')));
+    notify('error', errorMessage(e, `${props.entity} ${t('crud.failed')}`));
   } finally {
     saving.value = false;
   }
@@ -132,11 +133,11 @@ async function confirmDelete() {
   try {
     await props.remove?.(toDelete.value);
     deleteOpen.value = false;
-    notify('success', t('crud.deleted', { entity: props.entity }));
+    notify('success', `${props.entity} ${t('crud.success')} ${t('crud.deleted')}`);
     emit('deleted', [toDelete.value]);
     await tableRef.value?.refresh();
   } catch (e) {
-    notify('error', errorMessage(e, t('crud.failed')));
+    notify('error', errorMessage(e, `${props.entity} ${t('crud.failed')}`));
   } finally {
     deleting.value = false;
   }
@@ -159,6 +160,7 @@ defineExpose({ openCreate, openEdit, refresh: () => tableRef.value?.refresh() })
     :on-edit="canEdit ? openEdit : undefined"
     :on-delete="remove ? askDelete : undefined"
     :on-bulk-delete="removeMany ? bulkDelete : undefined"
+    :entity="entity"
     :selectable="(attrs.selectable as any) ?? !!removeMany"
   >
     <template v-for="(_, slot) in $slots" #[slot]="scope">
@@ -166,7 +168,13 @@ defineExpose({ openCreate, openEdit, refresh: () => tableRef.value?.refresh() })
     </template>
   </MrcDataTable>
 
-  <MrcModal v-model:open="formOpen" :title="title" :size="formSize" :dismissible="formDismissible && !saving">
+  <MrcModal
+    v-model:open="formOpen"
+    :title="title"
+    :icon="mode === 'edit' ? 'edit_note' : 'add_circle'"
+    :size="formSize"
+    :dismissible="formDismissible && !saving"
+  >
     <div v-if="preparing" class="flex justify-center py-10"><span class="loading loading-spinner" /></div>
     <MrcForm
       v-else
@@ -183,15 +191,22 @@ defineExpose({ openCreate, openEdit, refresh: () => tableRef.value?.refresh() })
       </template>
     </MrcForm>
     <template #footer>
-      <button type="button" class="btn btn-ghost btn-sm" :disabled="saving" @click="formOpen = false">{{ t('action.cancel') }}</button>
-      <button type="button" class="btn btn-primary btn-sm" :disabled="saving || preparing" @click="formRef?.submit()">
+      <button type="button" class="btn btn-primary gap-2 px-6 shadow-sm" :disabled="saving || preparing" @click="formRef?.submit()">
         <span v-if="saving" class="loading loading-spinner loading-xs" />
+        <MrcIcon v-else name="check_circle" />
         {{ t('action.save') }}
       </button>
+      <button type="button" class="btn btn-ghost" :disabled="saving" @click="formOpen = false">{{ t('action.cancel') }}</button>
     </template>
   </MrcModal>
 
-  <MrcConfirm v-model:open="deleteOpen" :title="t('confirm.deleteTitle')" :description="t('confirm.deleteText')" :loading="deleting" @confirm="confirmDelete">
-    <p v-if="toDelete && deleteLabel" class="bg-base-200 mt-1 rounded-field px-3 py-1.5 text-sm font-medium">{{ deleteLabel(toDelete) }}</p>
-  </MrcConfirm>
+  <MrcConfirm
+    v-model:open="deleteOpen"
+    variant="large"
+    :title="t('confirm.deleteTitle')"
+    :description="t('confirm.deleteText')"
+    :detail="toDelete && deleteLabel ? deleteLabel(toDelete) : undefined"
+    :loading="deleting"
+    @confirm="confirmDelete"
+  />
 </template>

@@ -68,7 +68,7 @@ export function createMrcatz(opts: MrcatzOptions & { registerComponents?: boolea
   };
 }
 
-export { useMrcatz, pushToast, MRCATZ_KEY, type MrcatzOptions, type NotifyFn, type NotifyType } from './config';
+export { useMrcatz, pushToast, openLightbox, MRCATZ_KEY, type MrcatzOptions, type NotifyFn, type NotifyType } from './config';
 export { id as messagesId, en as messagesEn, type Messages, type MessageKey } from './i18n';
 export { col, TONE_BTN, cellValue, displayValue, type ColumnDef, type CellContext, type Tone, type RowAction, type ActionsConfig, type InlineEditConfig } from './columns';
 export { field, initialValues, isVisible, type FieldDef, type FieldType, type FieldOption, type FormValues, type CrudMode, type FieldActionContext, type HintTone } from './fields';

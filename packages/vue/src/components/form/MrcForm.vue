@@ -131,11 +131,11 @@ defineExpose({ validate, payload, submit, setError, clearError });
     >
       <div :class="groups.cards && 'card-body'">
         <template v-if="g.title">
-          <h2 class="card-title text-base-content text-base">{{ g.title }}</h2>
+          <h2 class="card-title text-base-content flex items-center gap-2 text-base">{{ g.title }}</h2>
           <p v-if="g.text" class="text-base-content/60 -mt-1 text-sm">{{ g.text }}</p>
           <div class="divider mt-0 mb-2" />
         </template>
-        <div class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-12">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-12">
           <div
             v-for="(f, i) in g.fields"
             :key="f.name ?? `${f.type}-${gi}-${i}`"

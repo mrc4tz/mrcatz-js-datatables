@@ -1,82 +1,87 @@
 <script setup lang="ts">
-/** Filter rentang tanggal (pengganti `createDateRange`) — rentang terbuka didukung. */
+/** Filter rentang tanggal (pengganti `createDateRange`) — popover shortcut + dua input. */
 import { computed, ref, watch } from 'vue';
 import type { FilterSchema, RangeValue } from '@mrcatz/datatable-core';
 import { useMrcatz } from '../../config';
 import MrcPopover from '../MrcPopover.vue';
-import MrcIcon from '../MrcIcon.vue';
-import { formatDateValue, inputType, presetRange, type RangePreset } from './dateUtils';
+import FilterTrigger from './FilterTrigger.vue';
+import { inputType, presetRange, RANGE_PRESETS, type RangePreset } from './dateUtils';
 
 const props = defineProps<{ filter: FilterSchema; value?: RangeValue }>();
 const emit = defineEmits<{ change: [value: RangeValue | undefined] }>();
-const { t, dateLocale } = useMrcatz();
+const { t } = useMrcatz();
 
 const open = ref(false);
 const from = ref('');
 const to = ref('');
+const activePreset = ref<RangePreset | null>(null);
 watch(open, (v) => {
   if (!v) return;
   from.value = props.value?.from ?? '';
   to.value = props.value?.to ?? '';
+  activePreset.value = null;
 });
 
 const type = computed(() => inputType(props.filter.format));
-const presets: RangePreset[] = ['today', 'yesterday', 'last7', 'last30', 'thisMonth', 'thisYear'];
+const hasValue = computed(() => !!(props.value?.from || props.value?.to));
+const text = computed(() =>
+  hasValue.value
+    ? `${t('filter.from')} ${props.value?.from || '…'}  →  ${t('filter.to')} ${props.value?.to || '…'}`
+    : t('filter.pickRange'),
+);
 
-const summary = computed(() => {
-  const f = props.value?.from;
-  const tt = props.value?.to;
-  if (!f && !tt) return t('filter.pickRange');
-  const fmt = (v: string) => formatDateValue(v, props.filter.format, dateLocale);
-  if (f && tt) return f === tt ? fmt(f) : `${fmt(f)} – ${fmt(tt)}`;
-  return f ? `≥ ${fmt(f)}` : `≤ ${fmt(tt!)}`;
-});
-
-function apply(close: () => void, range?: RangeValue) {
-  let f = range?.from ?? (from.value || null);
-  let tt = range?.to ?? (to.value || null);
+function usePreset(p: RangePreset) {
+  const r = presetRange(p);
+  from.value = r.from ?? '';
+  to.value = r.to ?? '';
+  activePreset.value = p;
+}
+function apply() {
+  let f = from.value || null;
+  let tt = to.value || null;
   if (f && tt && f > tt) [f, tt] = [tt, f];
   emit('change', f || tt ? { from: f, to: tt } : undefined);
-  close();
+  open.value = false;
+}
+function clear() {
+  emit('change', undefined);
+  open.value = false;
 }
 </script>
 
 <template>
-  <MrcPopover v-model:open="open" width="19rem" class="w-full">
-    <template #trigger="{ toggle }">
-      <button
-        type="button"
-        class="select select-sm w-full text-left"
-        :class="{ 'text-base-content/50': !value?.from && !value?.to, 'select-primary': value?.from || value?.to }"
-        @click="toggle"
-      >
-        <MrcIcon name="calendar" :size="14" class="opacity-60" />
-        <span class="truncate">{{ summary }}</span>
-      </button>
+  <MrcPopover v-model:open="open" width="22rem" class="w-full" panel-class="bg-base-100 border-base-300 overflow-hidden rounded-xl border shadow-2xl">
+    <template #trigger>
+      <FilterTrigger icon="event" :text="text" :active="open" :has-value="hasValue" :clear-label="t('filter.clear')" @toggle="open = !open" @clear="clear" />
     </template>
 
-    <template #default="{ close }">
-      <div class="flex flex-col gap-2">
-        <div v-if="!filter.format || filter.format === 'date'" class="grid grid-cols-2 gap-1">
-          <button v-for="p in presets" :key="p" type="button" class="btn btn-ghost btn-xs justify-start" @click="apply(close, presetRange(p))">
-            {{ t(`filter.${p}`) }}
-          </button>
+    <div class="grid grid-cols-[7.5rem_1fr]">
+      <div class="bg-base-200/50 border-base-300 max-h-[20rem] overflow-y-auto border-r py-2">
+        <button
+          v-for="p in RANGE_PRESETS"
+          :key="p"
+          type="button"
+          class="hover:bg-base-300/50 block w-full px-3 py-1.5 text-left text-xs transition-colors"
+          :class="activePreset === p ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/70'"
+          @click="usePreset(p)"
+        >
+          {{ t(`filter.${p}`) }}
+        </button>
+      </div>
+      <div class="space-y-3 p-3">
+        <div>
+          <label class="text-base-content/60 mb-1 block text-xs font-medium">{{ t('filter.from') }}</label>
+          <input v-model="from" :type="type" class="input input-bordered input-sm w-full text-sm" :min="filter.min" :max="to || filter.max" @change="activePreset = null" />
         </div>
-        <div class="grid grid-cols-2 gap-2">
-          <label class="flex flex-col gap-1 text-xs">
-            {{ t('filter.from') }}
-            <input v-model="from" :type="type" class="input input-sm w-full" :min="filter.min" :max="to || filter.max" />
-          </label>
-          <label class="flex flex-col gap-1 text-xs">
-            {{ t('filter.to') }}
-            <input v-model="to" :type="type" class="input input-sm w-full" :min="from || filter.min" :max="filter.max" />
-          </label>
+        <div>
+          <label class="text-base-content/60 mb-1 block text-xs font-medium">{{ t('filter.to') }}</label>
+          <input v-model="to" :type="type" class="input input-bordered input-sm w-full text-sm" :min="from || filter.min" :max="filter.max" @change="activePreset = null" />
         </div>
-        <div class="flex justify-end gap-2 pt-1">
-          <button type="button" class="btn btn-ghost btn-xs" @click="emit('change', undefined); close()">{{ t('action.clear') }}</button>
-          <button type="button" class="btn btn-primary btn-xs" @click="apply(close)">{{ t('action.apply') }}</button>
+        <div class="flex gap-2 pt-1">
+          <button type="button" class="btn btn-ghost btn-sm flex-1" @click="clear">{{ t('filter.clear') }}</button>
+          <button type="button" class="btn btn-primary btn-sm flex-1" @click="apply">{{ t('filter.apply') }}</button>
         </div>
       </div>
-    </template>
+    </div>
   </MrcPopover>
 </template>

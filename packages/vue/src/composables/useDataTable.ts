@@ -239,17 +239,18 @@ export function useDataTable<T>(opts: UseDataTableOptions<T>) {
   }
 
   /**
-   * Klik header: asc → desc → tanpa urutan. Dengan `multi` (Shift+klik),
-   * kolom ditambahkan ke urutan bertingkat (pengganti `orderData`/`addSort`).
+   * Klik header (sama dengan `orderData()` versi Laravel): kolom yang belum
+   * diurutkan → DESC, lalu bergantian ASC/DESC. Dengan `multi` (Shift+klik),
+   * kolom ditambahkan ke urutan bertingkat (`addSort()`), urutan utama yang
+   * sedang aktif ikut dipertahankan sebagai prioritas pertama.
    */
   function toggleSort(key: string, multi = false) {
     const current = state.sort.find((s) => s.key === key);
-    const nextDir = !current ? 'asc' : current.dir === 'asc' ? 'desc' : null;
+    const nextDir: 'asc' | 'desc' = current?.dir === 'desc' ? 'asc' : 'desc';
     if (multi) {
-      const others = state.sort.filter((s) => s.key !== key);
-      state.sort = nextDir ? (current ? state.sort.map((s) => (s.key === key ? { key, dir: nextDir } : s)) : [...others, { key, dir: nextDir }]) : others;
+      state.sort = current ? state.sort.map((s) => (s.key === key ? { key, dir: nextDir } : s)) : [...state.sort, { key, dir: nextDir }];
     } else {
-      state.sort = nextDir ? [{ key, dir: nextDir }] : [];
+      state.sort = [{ key, dir: nextDir }];
     }
     state.page = 1;
     state.loaded = 1;
@@ -326,6 +327,13 @@ export function useDataTable<T>(opts: UseDataTableOptions<T>) {
     state.order = ids;
   }
 
+  /** Pindahkan kolom ke posisi kolom lain (drag & drop header). */
+  function moveColumnTo(id: string, targetId: string) {
+    if (id === targetId) return;
+    const ids = orderedColumns.value.map((c) => c.id);
+    moveColumn(id, ids.indexOf(targetId));
+  }
+
   function setWidth(id: string, width: number) {
     state.widths = { ...state.widths, [id]: Math.max(48, Math.round(width)) };
   }
@@ -399,6 +407,7 @@ export function useDataTable<T>(opts: UseDataTableOptions<T>) {
     loadMore,
     toggleColumn,
     moveColumn,
+    moveColumnTo,
     setWidth,
     refresh,
     applyState,

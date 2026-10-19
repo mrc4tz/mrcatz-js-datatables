@@ -1,12 +1,12 @@
 <script setup lang="ts">
 /**
- * Ikon SVG inline (gaya Lucide, stroke 2) — tanpa dependensi & tanpa CDN.
+ * Ikon SVG inline (Heroicons outline, stroke 1.5 — sama dengan versi Laravel), tanpa dependensi.
  * Nama di luar set bawaan dirender sebagai ikon font Material Symbols.
  */
 import { computed } from 'vue';
 import { iconPaths, isBuiltinIcon, type IconName } from '../icons';
 
-const props = withDefaults(defineProps<{ name: IconName; size?: number | string }>(), { size: 16 });
+const props = withDefaults(defineProps<{ name: IconName; size?: number | string }>(), { size: 20 });
 
 const svg = computed(() => (isBuiltinIcon(props.name) ? iconPaths[props.name] : null));
 const fontSize = computed(() => (typeof props.size === 'number' ? `${props.size}px` : props.size));
@@ -21,11 +21,9 @@ const fontSize = computed(() => (typeof props.size === 'number' ? `${props.size}
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
+    stroke-width="1.5"
     aria-hidden="true"
-    class="shrink-0"
+    class="inline-block shrink-0"
     v-html="svg"
   />
   <span

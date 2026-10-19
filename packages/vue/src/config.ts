@@ -31,13 +31,22 @@ export interface Toast {
 export const toastStore = reactive({ items: [] as Toast[] });
 let toastSeq = 0;
 
-export function pushToast(type: NotifyType, message: string, timeout = 4000) {
+export function removeToast(id: number) {
+  const i = toastStore.items.findIndex((t) => t.id === id);
+  if (i >= 0) toastStore.items.splice(i, 1);
+}
+
+/** Sama dengan versi Laravel: tampil 2 detik × jumlah toast yang sedang terlihat. */
+export function pushToast(type: NotifyType, message: string) {
   const item = { id: ++toastSeq, type, message };
   toastStore.items.push(item);
-  setTimeout(() => {
-    const i = toastStore.items.findIndex((t) => t.id === item.id);
-    if (i >= 0) toastStore.items.splice(i, 1);
-  }, timeout);
+  setTimeout(() => removeToast(item.id), 2000 * toastStore.items.length);
+}
+
+/** Lightbox gambar global — dirender oleh `<MrcToaster>`. */
+export const lightboxStore = reactive({ url: null as string | null });
+export function openLightbox(url: string) {
+  lightboxStore.url = url;
 }
 
 export interface MrcatzContext {

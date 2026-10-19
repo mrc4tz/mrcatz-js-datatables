@@ -24,7 +24,7 @@ const Link = hasRouter ? resolveDynamicComponent('RouterLink') : 'a';
           v-bind="hasRouter ? { to: b.to } : { href: b.to }"
           class="text-primary hover:text-primary/80 flex items-center gap-1 font-semibold transition-colors"
         >
-          <MrcIcon v-if="i === 0" name="home" :size="14" />
+          <MrcIcon v-if="i === 0" name="home" />
           {{ b.title }}
         </component>
         <span v-else class="text-base-content/50" aria-current="page">{{ b.title }}</span>

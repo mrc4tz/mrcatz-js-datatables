@@ -17,28 +17,37 @@ export function inputType(format: DateFormat | undefined): string {
 const pad = (n: number) => String(n).padStart(2, '0');
 export const isoDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-export type RangePreset = 'today' | 'yesterday' | 'last7' | 'last30' | 'thisMonth' | 'thisYear';
+export type RangePreset = 'today' | 'yesterday' | 'last7' | 'last30' | 'thisMonth' | 'last6m' | 'thisYear' | 'lastYear';
+export const RANGE_PRESETS: RangePreset[] = ['today', 'yesterday', 'last7', 'last30', 'thisMonth', 'last6m', 'thisYear', 'lastYear'];
 
-/** Rentang preset berdasarkan tanggal lokal hari ini. */
+/** Rentang preset — perhitungan sama dengan `mrcatzDateRange` versi Laravel. */
 export function presetRange(preset: RangePreset, now = new Date()): RangeValue {
-  const day = (offset: number) => {
-    const d = new Date(now);
-    d.setDate(d.getDate() + offset);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const shift = (fn: (d: Date) => void) => {
+    const d = new Date(today);
+    fn(d);
     return isoDate(d);
   };
+  const t = isoDate(today);
   switch (preset) {
     case 'today':
-      return { from: day(0), to: day(0) };
-    case 'yesterday':
-      return { from: day(-1), to: day(-1) };
+      return { from: t, to: t };
+    case 'yesterday': {
+      const y = shift((d) => d.setDate(d.getDate() - 1));
+      return { from: y, to: y };
+    }
     case 'last7':
-      return { from: day(-6), to: day(0) };
+      return { from: shift((d) => d.setDate(d.getDate() - 6)), to: t };
     case 'last30':
-      return { from: day(-29), to: day(0) };
+      return { from: shift((d) => d.setDate(d.getDate() - 29)), to: t };
     case 'thisMonth':
-      return { from: isoDate(new Date(now.getFullYear(), now.getMonth(), 1)), to: day(0) };
+      return { from: isoDate(new Date(today.getFullYear(), today.getMonth(), 1)), to: t };
+    case 'last6m':
+      return { from: shift((d) => d.setMonth(d.getMonth() - 6)), to: t };
     case 'thisYear':
-      return { from: `${now.getFullYear()}-01-01`, to: day(0) };
+      return { from: isoDate(new Date(today.getFullYear(), 0, 1)), to: t };
+    case 'lastYear':
+      return { from: shift((d) => d.setFullYear(d.getFullYear() - 1)), to: t };
   }
 }
 

@@ -18,8 +18,15 @@ const props = withDefaults(
     disabled?: boolean;
     /** Matikan teleport bila perlu tetap di dalam DOM induk. Default true. */
     teleport?: boolean;
+    /** Kelas panel; default gaya dropdown mrcatz (rounded-xl, shadow-xl, p-3). */
+    panelClass?: string;
   }>(),
-  { align: 'start', width: '18rem', teleport: true },
+  {
+    align: 'start',
+    width: '18rem',
+    teleport: true,
+    panelClass: 'bg-base-100 border border-base-content/10 rounded-xl shadow-xl p-3',
+  },
 );
 const open = defineModel<boolean>('open', { default: false });
 const root = ref<HTMLElement>();
@@ -27,7 +34,7 @@ const panel = ref<HTMLElement>();
 const target = ref<HTMLElement | string>('body');
 const style = reactive<Record<string, string>>({});
 
-const GAP = 6;
+const GAP = 8;
 const MIN_BELOW = 280;
 
 function place() {
@@ -98,16 +105,16 @@ function toggle() {
     <slot name="trigger" :open="open" :toggle="toggle" />
     <Teleport :to="target" :disabled="!teleport">
       <Transition
-        enter-active-class="transition duration-100 ease-out"
-        enter-from-class="opacity-0 -translate-y-1"
-        leave-active-class="transition duration-75 ease-in"
-        leave-to-class="opacity-0"
+        enter-active-class="transition ease-out duration-150"
+        enter-from-class="opacity-0 scale-95"
+        leave-active-class="transition ease-in duration-100"
+        leave-to-class="opacity-0 scale-95"
       >
         <div
           v-if="open"
           ref="panel"
-          class="mrc-popover bg-base-100 border-base-content/10 text-base-content z-[60] flex max-w-[calc(100vw-1rem)] flex-col overflow-y-auto rounded-box border p-2 text-sm shadow-lg"
-          :class="!teleport && ['absolute top-full mt-1.5', align === 'end' ? 'right-0' : 'left-0']"
+          class="mrc-popover text-base-content z-[100] flex max-w-[calc(100vw-1rem)] flex-col overflow-y-auto"
+          :class="[panelClass, !teleport && ['absolute top-full mt-2', align === 'end' ? 'right-0' : 'left-0']]"
           :style="teleport ? style : { width: width === 'trigger' ? '100%' : width }"
           role="dialog"
         >

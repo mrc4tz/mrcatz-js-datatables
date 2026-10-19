@@ -1,8 +1,5 @@
 <script setup lang="ts">
-/**
- * Grid label–nilai untuk isi baris expand (pengganti `getExpandView`).
- * Tipe: teks, gambar, tautan/tombol. Untuk konten bebas pakai slot `#expand`.
- */
+/** Isi baris expand (pengganti `getExpandView` / `datatable-expand.blade.php`). */
 import { getPath } from '@mrcatz/datatable-core';
 import { useMrcatz } from '../config';
 import { resolveImageUrl, TONE_BTN } from '../columns';
@@ -13,37 +10,51 @@ import MrcImage from './table/MrcImage.vue';
 defineProps<{ row: any; fields: ExpandField[] }>();
 const { imageBaseUrl } = useMrcatz();
 const val = (row: any, f: ExpandField) => (f.value ? f.value(row) : f.key ? getPath(row, f.key) : undefined);
-const spans = { 1: '', 2: 'sm:col-span-2', 3: 'sm:col-span-3' };
+const href = (row: any, f: ExpandField) => f.href?.(row) ?? String(val(row, f) ?? '#');
 </script>
 
 <template>
-  <dl class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-3">
-    <div v-for="f in fields" :key="f.label" class="min-w-0" :class="spans[f.span ?? 1]">
-      <dt class="text-base-content/60 text-xs">{{ f.label }}</dt>
-      <dd class="mt-0.5 text-sm break-words">
-        <MrcImage
-          v-if="f.type === 'image'"
-          :src="resolveImageUrl(val(row, f), imageBaseUrl)"
-          :alt="f.label"
-          :width="64"
-          :height="64"
-          img-class="rounded-box"
-        />
-        <a
-          v-else-if="f.type === 'link'"
-          :href="f.href?.(row) ?? String(val(row, f) ?? '#')"
-          :class="[TONE_BTN[f.tone ?? 'primary'], 'btn-soft']"
-          class="btn btn-xs"
-          :target="f.newTab ? '_blank' : undefined"
-          :rel="f.newTab ? 'noopener noreferrer' : undefined"
-          :download="f.download || undefined"
-          @click.stop
-        >
-          <MrcIcon v-if="f.icon" :name="f.icon" :size="13" />
-          {{ f.linkLabel ?? f.label }}
-        </a>
-        <template v-else>{{ val(row, f) ?? '—' }}</template>
-      </dd>
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div v-for="f in fields" :key="f.label" class="bg-base-200/40 rounded-lg px-3 py-2" @click.stop>
+      <span class="text-base-content/40 block text-[11px]" :class="f.type === 'link' ? 'mb-1.5' : f.type === 'image' || f.type === 'button' ? 'mb-1' : 'mb-0.5'">{{ f.label }}</span>
+
+      <MrcImage
+        v-if="f.type === 'image'"
+        :src="resolveImageUrl(val(row, f), imageBaseUrl)"
+        :fallback="f.fallbackKey ? String(getPath(row, f.fallbackKey) ?? '') : null"
+        :width="f.width ?? 64"
+        :height="f.height ?? 64"
+        :img-class="f.previewClass ?? 'rounded-lg'"
+        fallback-class="text-lg font-bold text-primary"
+        align="left"
+      />
+
+      <a
+        v-else-if="f.type === 'button'"
+        :href="href(row, f)"
+        class="link link-primary hover:link-hover inline-flex items-center gap-1.5 text-sm"
+        :download="f.download || undefined"
+        :target="f.newTab ? '_blank' : undefined"
+        :rel="f.newTab ? 'noopener noreferrer' : undefined"
+      >
+        <MrcIcon v-if="f.icon" :name="f.icon" :size="16" />
+        {{ f.linkLabel ?? f.label }}
+      </a>
+
+      <a
+        v-else-if="f.type === 'link'"
+        :href="href(row, f)"
+        class="btn btn-sm gap-1.5"
+        :class="TONE_BTN[f.tone ?? 'ghost']"
+        :download="f.download || undefined"
+        :target="f.newTab ? '_blank' : undefined"
+        :rel="f.newTab ? 'noopener noreferrer' : undefined"
+      >
+        <MrcIcon v-if="f.icon" :name="f.icon" :size="16" />
+        {{ f.linkLabel ?? f.label }}
+      </a>
+
+      <span v-else class="text-base-content/80 text-sm">{{ val(row, f) ?? '-' }}</span>
     </div>
-  </dl>
+  </div>
 </template>

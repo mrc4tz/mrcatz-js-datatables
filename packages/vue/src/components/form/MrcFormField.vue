@@ -1,11 +1,10 @@
 <script setup lang="ts">
-/** Satu field form daisyUI sesuai `FieldDef.type`. */
+/** Satu field form — markup sama dengan `partials/form/*.blade.php` versi Laravel. */
 import { computed, ref, watch } from 'vue';
 import { useMrcatz } from '../../config';
 import { TONE_BTN } from '../../columns';
 import { evalCondition, type FieldActionContext, type FieldDef, type FieldOption, type FormValues } from '../../fields';
 import { errorMessage } from '../../validation';
-import MrcCombobox from '../MrcCombobox.vue';
 import MrcConfirm from '../MrcConfirm.vue';
 import MrcIcon from '../MrcIcon.vue';
 import MrcImage from '../table/MrcImage.vue';
@@ -32,11 +31,10 @@ function set(v: unknown, key = name.value) {
   emit('update', key, v);
 }
 
-// Opsi bisa statis atau bergantung pada nilai field lain (mis. kecamatan → desa).
+// Opsi bisa statis atau dimuat ulang saat field di `dependsOn` berubah.
 const options = ref<FieldOption[]>([]);
 const optionsLoading = ref(false);
 watch(
-  // Opsi fungsi hanya dihitung ulang saat field di `dependsOn` berubah (bukan tiap ketikan).
   () => [f.value.options, ...(f.value.dependsOn ?? []).map((k) => props.values[k])],
   async () => {
     const src = f.value.options;
@@ -54,8 +52,8 @@ watch(
 
 const showPassword = ref(false);
 function generatePassword() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
-  const buf = new Uint32Array(14);
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
+  const buf = new Uint32Array(16);
   crypto.getRandomValues(buf);
   const pwd = [...buf].map((n) => chars[n % chars.length]).join('');
   set(pwd);
@@ -65,7 +63,7 @@ function generatePassword() {
 
 const tagDraft = ref('');
 function addTag() {
-  const v = tagDraft.value.trim();
+  const v = tagDraft.value.trim().replace(/,$/, '');
   const list = (value.value as string[]) ?? [];
   if (v && !list.includes(v)) set([...list, v]);
   tagDraft.value = '';
@@ -83,10 +81,16 @@ const nativeType = computed(() => {
       return f.value.type;
   }
 });
-const alertTone = { info: 'alert-info', success: 'alert-success', warning: 'alert-warning', error: 'alert-error' } as Record<string, string>;
+const isNumber = computed(() => f.value.type === 'number' || f.value.type === 'year');
 const hintTone = { info: 'text-info', success: 'text-success', warning: 'text-warning', error: 'text-error' } as Record<string, string>;
-// Gaya label & input mengikuti mrcatz/datatable versi Laravel.
-const legendClass = 'fieldset-legend pb-1 pt-0 text-xs font-semibold text-base-content/70 uppercase tracking-wide';
+const hintClass = computed(() => (f.value.hintTone ? hintTone[f.value.hintTone] : 'text-base-content/50'));
+const alert = computed(() => {
+  const tone = f.value.tone ?? 'info';
+  return {
+    cls: { warning: 'alert-warning', success: 'alert-success', error: 'alert-error' }[tone as string] ?? 'alert-info',
+    icon: ({ warning: 'warning', error: 'error', success: 'check_circle' } as const)[tone as 'warning' | 'error' | 'success'] ?? 'info',
+  };
+});
 
 // ---------------------------------------------------------------- tombol & gambar
 const busy = ref(false);
@@ -101,163 +105,178 @@ async function run(fn: () => unknown) {
   }
 }
 
+const pickedFile = ref<File | null>(null);
 const fileInput = ref<HTMLInputElement>();
 const confirmDelete = ref(false);
 function onPick(e: Event) {
-  const input = e.target as HTMLInputElement;
-  const file = input.files?.[0];
-  input.value = '';
-  if (!file || !f.value.onUpload) return;
+  pickedFile.value = (e.target as HTMLInputElement).files?.[0] ?? null;
   props.ctx.clearError(name.value);
+}
+function upload() {
+  const file = pickedFile.value;
+  if (!file || !f.value.onUpload) return;
   if (f.value.maxSize && file.size > f.value.maxSize) {
     props.ctx.setError(name.value, t('form.max', { label: f.value.label ?? '', max: `${Math.round(f.value.maxSize / 1024)} KB` }));
     return;
   }
-  void run(() => f.value.onUpload!(file, props.ctx));
+  void run(async () => {
+    await f.value.onUpload!(file, props.ctx);
+    pickedFile.value = null;
+    if (fileInput.value) fileInput.value.value = '';
+  });
 }
 function removeImage() {
   confirmDelete.value = false;
   void run(() => f.value.onDelete!(props.ctx));
 }
+
+const legend = 'fieldset-legend text-xs font-semibold text-base-content/70 uppercase tracking-wide';
+const inputBox = 'input input-bordered flex items-center gap-3 w-full transition-all duration-200 focus-within:shadow-sm';
 </script>
 
 <template>
   <!-- Elemen statis -->
-  <div v-if="f.type === 'section'" class="pt-2">
-    <h4 class="text-sm font-semibold text-base-content">{{ f.label }}</h4>
-    <p v-if="f.text" class="text-base-content/60 text-xs">{{ f.text }}</p>
+  <h2 v-if="f.type === 'section'" class="border-base-content/10 text-base-content mt-4 mb-1 border-b pb-2 text-lg font-semibold">{{ f.label }}</h2>
+  <p v-else-if="f.type === 'note'" class="text-base-content/60 mb-1 text-sm">{{ f.text }}</p>
+  <div v-else-if="f.type === 'divider'" class="divider" :class="f.text && 'text-base-content/50 text-sm'">{{ f.text }}</div>
+  <div v-else-if="f.type === 'alert'" class="alert text-sm" :class="alert.cls">
+    <MrcIcon :name="alert.icon" class="shrink-0" />
+    <span>{{ f.text }}</span>
   </div>
-
-  <!-- Tombol aksi: sejajar dengan input di sebelahnya (legend kosong sebagai pengganjal) -->
-  <fieldset v-else-if="f.type === 'button'" class="fieldset py-0">
-    <span :class="legendClass" aria-hidden="true">&nbsp;</span>
-    <button
-      type="button"
-      class="btn w-full gap-2"
-      :class="[TONE_BTN[f.tone ?? 'primary'], !f.label && 'btn-square']"
-      :disabled="disabled || busy"
-      :aria-label="f.label || f.icon"
-      @click="run(() => f.onClick?.(ctx))"
-    >
-      <span v-if="busy" class="loading loading-spinner loading-xs" />
-      <MrcIcon v-else-if="f.icon" :name="f.icon" :size="18" />
-      <span v-if="f.label">{{ f.label }}</span>
-    </button>
-  </fieldset>
-
-  <!-- Foto: pratinjau, unggah, hapus -->
-  <fieldset v-else-if="f.type === 'image'" class="fieldset py-0">
-    <span v-if="f.label" :class="legendClass">{{ f.label }}</span>
-    <div class="flex flex-col items-center gap-3">
-      <div class="relative">
-        <MrcImage
-          :src="f.preview ?? null"
-          :alt="f.label"
-          :fallback="f.fallback"
-          :width="f.previewSize ?? 128"
-          :height="f.previewSize ?? 128"
-          :img-class="f.previewClass ?? 'rounded-full ring ring-primary ring-offset-base-100 ring-offset-2'"
-        />
-        <span v-if="busy" class="bg-base-100/60 absolute inset-0 flex items-center justify-center rounded-full">
-          <span class="loading loading-spinner" />
-        </span>
-      </div>
-      <div class="flex flex-wrap justify-center gap-2">
-        <input ref="fileInput" type="file" class="hidden" :accept="f.accept" @change="onPick" />
-        <button v-if="f.onUpload" type="button" class="btn btn-sm btn-primary btn-soft gap-1.5" :disabled="disabled || busy" @click="fileInput?.click()">
-          <MrcIcon name="upload" :size="16" /> {{ t('form.upload') }}
-        </button>
-        <button
-          v-if="f.onDelete && f.preview"
-          type="button"
-          class="btn btn-sm btn-error btn-soft gap-1.5"
-          :disabled="disabled || busy"
-          @click="f.deleteConfirm ? (confirmDelete = true) : removeImage()"
-        >
-          <MrcIcon name="trash" :size="15" /> {{ t('action.delete') }}
-        </button>
-      </div>
-    </div>
-    <p v-if="error" class="text-error mt-1 text-center text-xs">{{ error }}</p>
-    <p v-else-if="f.hint" class="mt-1 text-center text-xs" :class="f.hintTone ? hintTone[f.hintTone] : 'text-base-content/60'">{{ f.hint }}</p>
-    <MrcConfirm v-if="f.deleteConfirm" v-model:open="confirmDelete" :title="f.deleteConfirm" @confirm="removeImage" />
-  </fieldset>
-  <p v-else-if="f.type === 'note'" class="text-base-content/70 text-sm">{{ f.text }}</p>
-  <div v-else-if="f.type === 'alert'" role="alert" class="alert alert-soft text-sm" :class="alertTone[f.tone ?? 'info']">{{ f.text }}</div>
-  <div v-else-if="f.type === 'divider'" class="divider my-0 text-xs">{{ f.text }}</div>
   <input v-else-if="f.type === 'hidden'" type="hidden" :name="name" :value="value" />
 
-  <!-- Toggle & checkbox: label di samping -->
-  <div v-else-if="f.type === 'toggle' || f.type === 'checkbox'" class="flex flex-col gap-1">
-    <label class="border-base-content/10 hover:bg-base-200/50 flex cursor-pointer items-center gap-3 rounded-field border p-3 text-sm font-medium transition-colors">
+  <!-- Tombol aksi -->
+  <fieldset v-else-if="f.type === 'button'" class="fieldset">
+    <legend :class="legend">&nbsp;</legend>
+    <button type="button" class="btn w-full gap-2" :class="TONE_BTN[f.tone ?? 'primary']" :disabled="disabled || busy" @click="run(() => f.onClick?.(ctx))">
+      <span v-if="busy" class="loading loading-spinner loading-xs" />
+      <MrcIcon v-if="f.icon" :name="f.icon" />
+      {{ f.label }}
+    </button>
+    <p v-if="f.hint" class="mt-1 text-xs" :class="hintClass">{{ f.hint }}</p>
+  </fieldset>
+
+  <!-- Foto -->
+  <fieldset v-else-if="f.type === 'image'" class="fieldset">
+    <legend :class="legend">{{ f.label }}</legend>
+    <div class="flex flex-col items-center gap-4" :class="f.onUpload && 'border-base-content/10 bg-base-200/20 rounded-lg border p-4'">
+      <MrcImage
+        :src="f.preview ?? null"
+        :alt="f.label"
+        :fallback="f.fallback"
+        :width="f.previewSize ?? 128"
+        :height="f.previewSize ?? 128"
+        :img-class="f.previewClass ?? 'rounded-full ring ring-primary ring-offset-base-100 ring-offset-2'"
+        fallback-class="text-4xl font-bold text-primary"
+      />
+      <div v-if="f.onUpload" class="w-full max-w-xs">
+        <input
+          ref="fileInput"
+          type="file"
+          class="file-input file-input-bordered file-input-sm w-full"
+          :class="{ 'file-input-error': error }"
+          :accept="f.accept"
+          :disabled="disabled || busy"
+          @change="onPick"
+        />
+        <p v-if="error" class="text-error mt-1 flex items-center gap-1 text-xs"><MrcIcon name="error" :size="14" />{{ error }}</p>
+        <div class="mt-3 flex gap-2">
+          <button type="button" class="btn btn-primary btn-sm flex-1 gap-1" :disabled="disabled || busy || !pickedFile" @click="upload">
+            <span v-if="busy" class="loading loading-spinner loading-xs" />
+            {{ t('action.upload') }}
+          </button>
+          <button
+            v-if="f.onDelete && f.preview"
+            type="button"
+            class="btn btn-error btn-sm btn-outline gap-1"
+            :disabled="disabled || busy"
+            :aria-label="t('action.delete')"
+            @click="confirmDelete = true"
+          >
+            <MrcIcon name="delete" :size="16" />
+          </button>
+        </div>
+      </div>
+      <p v-if="f.hint" class="mt-1 text-xs" :class="hintClass">{{ f.hint }}</p>
+    </div>
+    <MrcConfirm
+      v-if="f.onDelete"
+      v-model:open="confirmDelete"
+      variant="large"
+      :title="f.deleteConfirm ?? t('form.deletePhoto')"
+      :description="t('form.deletePhotoDesc')"
+      :confirm-label="t('action.delete')"
+      @confirm="removeImage"
+    />
+  </fieldset>
+
+  <!-- Toggle & checkbox -->
+  <fieldset v-else-if="f.type === 'toggle' || f.type === 'checkbox'" class="fieldset">
+    <label
+      class="label border-base-content/10 hover:bg-base-200/50 cursor-pointer justify-start gap-3 rounded-lg border p-3 transition-colors duration-200"
+      :class="disabled && 'bg-base-200 opacity-60'"
+    >
       <input
         :id="inputId"
         type="checkbox"
-        :class="f.type === 'toggle' ? 'toggle toggle-sm toggle-primary' : 'checkbox checkbox-sm checkbox-primary'"
+        :class="f.type === 'toggle' ? 'toggle toggle-primary' : 'checkbox checkbox-primary'"
         :checked="!!value"
         :disabled="disabled"
         @change="set(($event.target as HTMLInputElement).checked)"
       />
-      <span>{{ f.label }}<span v-if="required" class="text-error"> *</span></span>
+      <span class="text-base-content text-sm font-medium">{{ f.label }}</span>
     </label>
-    <p v-if="error" class="text-error text-xs">{{ error }}</p>
-    <p v-else-if="f.hint" class="text-xs" :class="f.hintTone ? hintTone[f.hintTone] : 'text-base-content/60'">{{ f.hint }}</p>
-  </div>
+    <p v-if="error" class="text-error mt-1 flex items-center gap-1 text-xs"><MrcIcon name="error" :size="14" />{{ error }}</p>
+    <p v-if="f.hint" class="mt-1 text-xs" :class="hintClass">{{ f.hint }}</p>
+  </fieldset>
 
-  <fieldset v-else class="fieldset py-0">
-    <label v-if="f.label" :for="inputId" :class="legendClass">
-      {{ f.label }}<span v-if="required" class="text-error">*</span>
-    </label>
+  <fieldset v-else class="fieldset">
+    <legend v-if="f.label" :class="legend">{{ f.label }}</legend>
 
     <slot v-if="f.type === 'slot'" :value="value" :set="set" :disabled="disabled" />
 
-    <MrcCombobox
+    <select
       v-else-if="f.type === 'select'"
       :id="inputId"
-      :model-value="value"
-      :options="options"
-      :placeholder="f.placeholder"
-      :disabled="disabled"
-      :loading="optionsLoading"
-      :error="!!error"
-      size="md"
-      :clearable="!required"
-      :clear-label="t('form.choose')"
-      @update:model-value="set($event)"
-    />
+      class="select select-bordered w-full text-sm transition-all duration-200 focus:shadow-sm"
+      :class="{ 'select-error': error, 'bg-base-200 opacity-60': disabled }"
+      :disabled="disabled || optionsLoading"
+      @change="set(options[($event.target as HTMLSelectElement).selectedIndex - 1]?.value ?? '')"
+    >
+      <option value="" :selected="value === '' || value === null || value === undefined">-- {{ f.placeholder ?? f.label }} --</option>
+      <option v-for="o in options" :key="String(o.value)" :value="String(o.value)" :selected="String(o.value) === String(value)">{{ o.label }}</option>
+    </select>
 
-    <div v-else-if="f.type === 'radio'" class="flex flex-wrap gap-x-4 gap-y-1.5 py-1" role="radiogroup">
-      <label v-for="o in options" :key="String(o.value)" class="flex cursor-pointer items-center gap-2 text-sm">
-        <input type="radio" class="radio radio-sm radio-primary" :name="inputId" :checked="value === o.value" :disabled="disabled" @change="set(o.value)" />
-        {{ o.label }}
+    <div v-else-if="f.type === 'radio'" class="border-base-content/10 flex flex-wrap gap-4 rounded-lg border p-3" :class="disabled && 'bg-base-200 opacity-60'" role="radiogroup">
+      <label v-for="o in options" :key="String(o.value)" class="flex cursor-pointer items-center gap-2">
+        <input type="radio" class="radio radio-primary" :name="inputId" :checked="value === o.value" :disabled="disabled" @change="set(o.value)" />
+        <span class="text-sm">{{ o.label }}</span>
       </label>
     </div>
 
     <textarea
       v-else-if="f.type === 'textarea'"
       :id="inputId"
-      class="textarea focus:textarea-primary w-full text-sm transition-all duration-200 focus:shadow-sm"
-      :class="{ 'textarea-error': error }"
-      :rows="f.rows ?? 4"
-      :placeholder="f.placeholder"
+      class="textarea textarea-bordered w-full text-sm transition-all duration-200 focus:shadow-sm"
+      :class="[{ 'textarea-error': error, 'bg-base-200 opacity-60': disabled }, f.rows ? '' : 'h-28']"
+      :rows="f.rows"
+      :placeholder="f.placeholder ?? '...'"
       :maxlength="f.maxLength"
       :disabled="disabled"
       :value="value as string"
       @input="set(($event.target as HTMLTextAreaElement).value)"
     />
 
-    <div v-else-if="f.type === 'tags'" class="input h-auto min-h-10 w-full flex-wrap gap-1 py-1.5" :class="{ 'input-error': error }">
-      <span v-for="tag in (value as string[]) ?? []" :key="tag" class="badge badge-soft badge-primary gap-1 pr-1">
+    <div v-else-if="f.type === 'tags'" :class="[inputBox, 'h-auto min-h-10 flex-wrap gap-1 py-1.5', error && 'input-error']">
+      <span v-for="tag in (value as string[]) ?? []" :key="tag" class="badge badge-primary gap-1">
         {{ tag }}
-        <button type="button" class="btn btn-ghost btn-xs btn-circle size-4 min-h-0" :disabled="disabled" @click="set(((value as string[]) ?? []).filter((x) => x !== tag))">
-          <MrcIcon name="x" :size="10" />
-        </button>
+        <button type="button" :disabled="disabled" @click="set(((value as string[]) ?? []).filter((x) => x !== tag))"><MrcIcon name="close" :size="12" /></button>
       </span>
       <input
         :id="inputId"
         v-model="tagDraft"
-        class="min-w-24 flex-1"
-        :placeholder="f.placeholder ?? t('form.addTag')"
+        class="min-w-24 flex-1 text-sm"
+        :placeholder="f.placeholder ?? '...'"
         :disabled="disabled"
         @keydown.enter.prevent="addTag"
         @keydown.,.prevent="addTag"
@@ -269,7 +288,7 @@ function removeImage() {
       v-else-if="f.type === 'file'"
       :id="inputId"
       type="file"
-      class="file-input w-full"
+      class="file-input file-input-bordered w-full"
       :class="{ 'file-input-error': error }"
       :accept="f.accept"
       :multiple="f.multiple"
@@ -296,20 +315,16 @@ function removeImage() {
       v-else-if="f.type === 'color'"
       :id="inputId"
       type="color"
-      class="h-10 w-20 cursor-pointer rounded-field border-0 bg-transparent"
+      class="h-10 w-20 cursor-pointer rounded-lg border-0 bg-transparent"
       :value="(value as string) || '#000000'"
       :disabled="disabled"
       @input="set(($event.target as HTMLInputElement).value)"
     />
 
-    <!-- input teks umum -->
-    <label
-      v-else
-      class="input focus-within:input-primary w-full gap-3 transition-all duration-200 focus-within:shadow-sm"
-      :class="{ 'input-error': error, 'bg-base-200 opacity-60': disabled }"
-    >
-      <MrcIcon v-if="f.icon" :name="f.icon" :size="18" class="text-base-content/40" />
-      <span v-if="f.prefix" class="text-base-content/60 text-sm">{{ f.prefix }}</span>
+    <!-- Input teks / angka / tanggal -->
+    <label v-else :class="[inputBox, error && 'input-error', disabled && 'bg-base-200 opacity-60']">
+      <span v-if="f.icon" class="text-base-content/40 inline-flex shrink-0 items-center justify-center self-center"><MrcIcon :name="f.icon" /></span>
+      <span v-if="f.prefix" class="text-base-content/50 shrink-0 text-sm font-medium">{{ f.prefix }}</span>
       <input
         :id="inputId"
         :type="nativeType"
@@ -322,44 +337,55 @@ function removeImage() {
         :disabled="disabled"
         :value="value as string"
         :autocomplete="f.type === 'password' ? 'new-password' : undefined"
-        @input="set(f.type === 'number' || f.type === 'year' ? (($event.target as HTMLInputElement).value === '' ? '' : Number(($event.target as HTMLInputElement).value)) : ($event.target as HTMLInputElement).value)"
+        @input="set(isNumber ? (($event.target as HTMLInputElement).value === '' ? '' : Number(($event.target as HTMLInputElement).value)) : ($event.target as HTMLInputElement).value)"
       />
-      <span v-if="f.suffix" class="text-base-content/60 text-sm">{{ f.suffix }}</span>
-      <template v-if="f.type === 'password'">
-        <button v-if="f.generate !== false" type="button" class="btn btn-ghost btn-xs" :disabled="disabled" @click="generatePassword">{{ t('form.generate') }}</button>
+      <span v-if="f.suffix" class="text-base-content/50 shrink-0 text-sm font-medium">{{ f.suffix }}</span>
+      <template v-if="f.type === 'password' && !disabled">
+        <button
+          v-if="f.generate !== false"
+          type="button"
+          tabindex="-1"
+          class="text-base-content/40 hover:text-base-content/70 shrink-0 cursor-pointer transition-colors"
+          :aria-label="t('form.generate')"
+          :title="t('form.generate')"
+          @click="generatePassword"
+        >
+          <MrcIcon name="autorenew" />
+        </button>
         <button
           v-if="f.reveal !== false"
           type="button"
-          class="btn btn-ghost btn-xs btn-square"
+          tabindex="-1"
+          class="hover:text-base-content/70 shrink-0 cursor-pointer transition-colors"
+          :class="showPassword ? 'text-base-content/70' : 'text-base-content/40'"
           :aria-label="showPassword ? t('form.hidePassword') : t('form.showPassword')"
           @click="showPassword = !showPassword"
         >
-          <MrcIcon :name="showPassword ? 'eye-off' : 'eye'" :size="15" />
+          <MrcIcon :name="showPassword ? 'visibility_off' : 'visibility'" />
         </button>
       </template>
     </label>
 
-    <p v-if="error" class="text-error flex items-center gap-1 text-xs"><MrcIcon name="alert" :size="12" />{{ error }}</p>
-    <p v-else-if="f.hint" class="text-xs" :class="f.hintTone ? hintTone[f.hintTone] : 'text-base-content/60'">{{ f.hint }}</p>
+    <p v-if="error" class="text-error mt-1 flex items-center gap-1 text-xs"><MrcIcon name="error" :size="14" />{{ error }}</p>
+    <p v-if="f.hint" class="mt-1 text-xs" :class="hintClass">{{ f.hint }}</p>
+  </fieldset>
 
-    <!-- Konfirmasi password -->
-    <template v-if="f.type === 'password' && f.confirm">
-      <label :for="`${inputId}-confirm`" :class="[legendClass, 'pt-3']">
-        {{ typeof f.confirm === 'string' ? f.confirm : t('form.confirmLabel', { label: f.label ?? '' }) }}
-      </label>
-      <label class="input focus-within:input-primary w-full gap-3 transition-all duration-200" :class="{ 'input-error': confirmError }">
-        <MrcIcon v-if="f.icon" :name="f.icon" :size="18" class="text-base-content/40" />
-        <input
-          :id="`${inputId}-confirm`"
-          :type="showPassword ? 'text' : 'password'"
-          class="min-w-0 grow text-sm"
-          autocomplete="new-password"
-          :disabled="disabled"
-          :value="values[`${name}_confirmation`]"
-          @input="set(($event.target as HTMLInputElement).value, `${name}_confirmation`)"
-        />
-      </label>
-      <p v-if="confirmError" class="text-error text-xs">{{ confirmError }}</p>
-    </template>
+  <!-- Konfirmasi password: field terpisah, sama seperti `->withConfirmation()` -->
+  <fieldset v-if="f.type === 'password' && f.confirm" class="fieldset mt-4">
+    <legend :class="legend">{{ typeof f.confirm === 'string' ? f.confirm : t('form.confirmLabel', { label: f.label ?? '' }) }}</legend>
+    <label :class="[inputBox, confirmError && 'input-error', disabled && 'bg-base-200 opacity-60']">
+      <span v-if="f.icon" class="text-base-content/40 inline-flex shrink-0 items-center justify-center self-center"><MrcIcon :name="f.icon" /></span>
+      <input
+        :id="`${inputId}-confirm`"
+        :type="showPassword ? 'text' : 'password'"
+        class="min-w-0 grow text-sm"
+        placeholder="..."
+        autocomplete="new-password"
+        :disabled="disabled"
+        :value="values[`${name}_confirmation`]"
+        @input="set(($event.target as HTMLInputElement).value, `${name}_confirmation`)"
+      />
+    </label>
+    <p v-if="confirmError" class="text-error mt-1 flex items-center gap-1 text-xs"><MrcIcon name="error" :size="14" />{{ confirmError }}</p>
   </fieldset>
 </template>

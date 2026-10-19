@@ -1,7 +1,8 @@
 import { toCsv, type CsvOptions } from '@mrcatz/datatable-core';
 import { displayValue, type ColumnDef } from './columns';
+import { buildXlsx } from './xlsx';
 
-export type ExportFormat = 'csv' | 'pdf';
+export type ExportFormat = 'pdf' | 'csv' | 'excel';
 export type ExportScope = 'filtered' | 'all' | 'selected';
 
 export interface ExportTable {
@@ -44,6 +45,14 @@ export function downloadCsv(table: ExportTable, filename: string, opts?: CsvOpti
     ? toCsv(pre[0]!.map(String), [...pre.slice(1), [], table.headers, ...table.rows], opts)
     : toCsv(table.headers, table.rows, opts);
   download(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `${filename}.csv`);
+}
+
+export function downloadXlsx(table: ExportTable, filename: string, opts: { conditions?: string[]; sheetName?: string } = {}) {
+  const data = buildXlsx(table.headers, table.rows, { preamble: opts.conditions, sheetName: opts.sheetName });
+  download(
+    new Blob([data as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+    `${filename}.xlsx`,
+  );
 }
 
 const esc = (v: unknown) =>

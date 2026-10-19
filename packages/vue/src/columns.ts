@@ -91,6 +91,8 @@ export interface ColumnDef<T = any> {
   badge?: Record<string, Tone> | ((value: unknown, row: T) => Tone);
   /** Gaya badge: `soft` (default), `solid`, atau `outline`. */
   badgeVariant?: 'soft' | 'solid' | 'outline';
+  /** Kelas tambahan untuk badge (mis. `text-white`). */
+  badgeClass?: string;
   image?: ImageConfig;
   actions?: ActionsConfig<T>;
   /** Ikut diekspor. Default true kecuali kolom aksi. */
@@ -117,6 +119,7 @@ type Common<T> = Partial<
     | 'exportable'
     | 'exportValue'
     | 'badgeVariant'
+    | 'badgeClass'
   >
 > & { sortable?: boolean };
 
@@ -240,7 +243,6 @@ export const col = {
       ...base<T>('actions', label ?? '', undefined, {
         id: '__actions',
         sortable: false,
-        pinned: true,
         exportable: false,
         align: align ?? 'center',
       }),
