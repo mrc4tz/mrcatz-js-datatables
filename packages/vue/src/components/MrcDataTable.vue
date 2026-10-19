@@ -63,6 +63,12 @@ const props = withDefaults(
 
     /** Kotak centang per baris; fungsi untuk menentukan baris mana yang bisa dipilih. */
     selectable?: boolean | ((row: T) => boolean);
+    /**
+     * Tampilkan tombol "Pilih" untuk menyalakan/mematikan mode seleksi
+     * (pengganti `$showBulkButton`). Kotak centang hanya muncul saat mode aktif;
+     * mematikannya mengosongkan seleksi. Default `false` = kotak centang selalu tampil.
+     */
+    selectionToggle?: boolean;
     bulkActions?: BulkAction<T>[];
     /** Baris bisa dibuka: `true`/`both`, atau hanya `desktop`/`mobile`. */
     expandable?: boolean | 'both' | 'desktop' | 'mobile';
@@ -122,6 +128,8 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{ 'selection-change': [rows: T[]] }>();
+/** Mode seleksi (hanya berpengaruh bila `selectionToggle`). Bisa dikontrol lewat `v-model:selection-mode`. */
+const selectionMode = defineModel<boolean>('selectionMode', { default: false });
 const slots = useSlots();
 const { t, notify } = useMrcatz();
 
@@ -156,7 +164,14 @@ const actionColumn = computed(() => table.visibleColumns.value.find((c) => c.kin
 const mobileTitleColumn = computed(() => mobileColumns.value.find((c) => c.rowHeader) ?? mobileColumns.value.find((c) => c.kind === 'data'));
 
 const canSelect = (row: T) => (typeof props.selectable === 'function' ? props.selectable(row) : !!props.selectable);
-const selectionEnabled = computed(() => !!props.selectable);
+const selectionEnabled = computed(() => !!props.selectable && (!props.selectionToggle || selectionMode.value));
+function toggleSelectionMode() {
+  selectionMode.value = !selectionMode.value;
+}
+// Mematikan mode seleksi mengosongkan pilihan (setara `toggleBulk()` versi Laravel).
+watch(selectionEnabled, (on) => {
+  if (!on) table.clearSelection();
+});
 const pageSelectable = computed(() => rows.value.filter(canSelect));
 const pageAllSelected = computed(() => pageSelectable.value.length > 0 && pageSelectable.value.every(table.isSelected));
 const pageSomeSelected = computed(() => !pageAllSelected.value && pageSelectable.value.some(table.isSelected));
@@ -422,6 +437,19 @@ defineExpose({ table, refresh: table.refresh, reset: table.reset, clearSelection
           <MrcIcon name="filter" :size="15" />
           <span class="hidden sm:inline">{{ t('filter.button') }}</span>
           <span v-if="table.activeFilterCount.value" class="badge badge-xs badge-primary">{{ table.activeFilterCount.value }}</span>
+        </button>
+
+        <button
+          v-if="selectable && selectionToggle"
+          type="button"
+          class="btn btn-sm btn-square"
+          :class="selectionMode ? 'btn-secondary' : 'btn-ghost border-base-content/15 border'"
+          :title="t('action.select')"
+          :aria-label="t('action.select')"
+          :aria-pressed="selectionMode"
+          @click="toggleSelectionMode"
+        >
+          <MrcIcon :name="selectionMode ? 'check-square' : 'square'" :size="15" />
         </button>
 
         <ColumnMenu v-if="columnVisibility" :table="table" :reorder="columnReorder" />

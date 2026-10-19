@@ -82,4 +82,24 @@ describe('MrcDataTable', () => {
     expect(th.attributes('aria-sort')).toBe('descending');
     w.unmount();
   });
+
+  it('tombol Pilih menyalakan/mematikan mode seleksi dan mengosongkan pilihan', async () => {
+    const w = setup({ selectable: true, selectionToggle: true });
+    await tick();
+    const rowBoxes = () => w.findAll('tbody tr[data-row] input[type="checkbox"]');
+    expect(rowBoxes()).toHaveLength(0);
+
+    const toggle = w.find('button[aria-label="Pilih"]');
+    await toggle.trigger('click');
+    expect(toggle.attributes('aria-pressed')).toBe('true');
+    expect(rowBoxes()).toHaveLength(3);
+
+    await rowBoxes()[0]!.setValue(true);
+    expect(w.text()).toContain('1 data dipilih');
+
+    await toggle.trigger('click');
+    expect(rowBoxes()).toHaveLength(0);
+    expect(w.text()).not.toContain('data dipilih');
+    w.unmount();
+  });
 });

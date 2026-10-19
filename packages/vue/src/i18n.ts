@@ -1,5 +1,5 @@
 export const id = {
-  action: { add: 'Tambah', save: 'Simpan', cancel: 'Batal', delete: 'Hapus', edit: 'Edit', reset: 'Reset', export: 'Export', apply: 'Terapkan', clear: 'Hapus', close: 'Tutup', more: 'Lainnya', details: 'Detail', yesReset: 'Ya, Reset', yesDelete: 'Ya, Hapus', refresh: 'Muat ulang', loadMore: 'Muat lebih banyak' },
+  action: { add: 'Tambah', select: 'Pilih', save: 'Simpan', cancel: 'Batal', delete: 'Hapus', edit: 'Edit', reset: 'Reset', export: 'Export', apply: 'Terapkan', clear: 'Hapus', close: 'Tutup', more: 'Lainnya', details: 'Detail', yesReset: 'Ya, Reset', yesDelete: 'Ya, Hapus', refresh: 'Muat ulang', loadMore: 'Muat lebih banyak' },
   column: { actions: 'Aksi', rowNumber: 'No', toggle: 'Kolom', resetLayout: 'Reset tata letak', dragHint: 'Seret untuk mengubah urutan' },
   search: { placeholder: 'Cari data...', submit: 'Cari' },
   filter: {
@@ -83,7 +83,7 @@ export const id = {
 export type Messages = typeof id;
 
 export const en: Messages = {
-  action: { add: 'Add', save: 'Save', cancel: 'Cancel', delete: 'Delete', edit: 'Edit', reset: 'Reset', export: 'Export', apply: 'Apply', clear: 'Clear', close: 'Close', more: 'More', details: 'Details', yesReset: 'Yes, reset', yesDelete: 'Yes, delete', refresh: 'Reload', loadMore: 'Load more' },
+  action: { add: 'Add', select: 'Select', save: 'Save', cancel: 'Cancel', delete: 'Delete', edit: 'Edit', reset: 'Reset', export: 'Export', apply: 'Apply', clear: 'Clear', close: 'Close', more: 'More', details: 'Details', yesReset: 'Yes, reset', yesDelete: 'Yes, delete', refresh: 'Reload', loadMore: 'Load more' },
   column: { actions: 'Actions', rowNumber: 'No', toggle: 'Columns', resetLayout: 'Reset layout', dragHint: 'Drag to reorder' },
   search: { placeholder: 'Search...', submit: 'Search' },
   filter: {

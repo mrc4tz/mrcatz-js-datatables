@@ -207,6 +207,7 @@ dan **handler `on*`/event** untuk aksi pengguna.
 | `setPageName()` / `urlPrefix()` | `name` (client) / `prefix` (server) |
 | `setSearchWord()` | `highlight()` / `<MrcHighlight>` |
 | `enableBulk(fn)` | prop `selectable` |
+| `$showBulkButton` / `toggleBulk()` / `$bulkActive` | prop `selection-toggle` / tombol "Pilih" / `v-model:selection-mode` |
 | `enableEditable(fn)` | `col.text(..., { editable: { when } })` |
 | `enableExpand(fn)` + `getExpandView()` | prop `expandable` + `expandFields` / slot `#expand` |
 | `$showSearch`, `$typeSearch`, `$typeSearchDelay` | `searchable`, `searchMode`, `searchDebounce` |
