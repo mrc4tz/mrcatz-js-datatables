@@ -178,6 +178,32 @@ const fields = [
 > `data-theme="light|dark"`, jadi tema gelap ikut berpindah; warna daisyUI bisa diselaraskan dengan token `--ina-*`
 > lewat `@plugin 'daisyui/theme'`.
 
+### Ikon (pengganti `icon_set` di `config/mrcatz.php`)
+
+Semua opsi ikon ada di `createMrcatz({ icons })` — tidak ada file config terpisah:
+
+```ts
+nuxt.vueApp.use(
+  createMrcatz({
+    icons: {
+      // 'default' | 'heroicons' (SVG inline bawaan) | 'material' | 'fontawesome' | 'custom'
+      set: 'material',
+      materialClass: 'material-symbols-outlined', // atau 'material-icons'
+      // gabungan `custom_icons` + `form_icons`; selalu diprioritaskan di set mana pun
+      custom: {
+        person: '<path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 ..."/>', // dibungkus <svg> 24×24
+        mail: '<i class="bi bi-envelope"></i>', // HTML apa adanya
+        // star: StarIcon, // komponen Vue (mis. lucide-vue-next), menerima prop `size`
+      },
+    },
+  }),
+);
+```
+
+`material` dan `fontawesome` hanya mengganti markup — font/CSS-nya dimuat sendiri oleh aplikasi
+(mis. Google Fonts *Material Symbols Outlined* atau CSS Font Awesome 6). `icon:` di field/aksi juga
+boleh langsung berisi HTML (`icon: '<i class="bi bi-star"></i>'`).
+
 Butuh kontrol penuh? `useDataTable()` mengembalikan seluruh state & aksi (query, seleksi, kolom, filter) tanpa UI.
 
 ## Pemetaan nama: Laravel → JS
@@ -274,6 +300,7 @@ dan **handler `on*`/event** untuk aksi pengguna.
 | `form-standalone.blade.php` | `<MrcFormPage :submit="..." button-card />` |
 | `breadcrumbs.blade.php` + `$breadcrumbs` | `<MrcBreadcrumbs :items="[{ title, to }]" />` |
 | `mrcatz_icon('nama')` (Material) | `<MrcIcon name="nama" />` — ikon bawaan SVG, nama lain = Material Symbols |
+| `config('mrcatz.icon_set')`, `custom_icons`, `form_icons` | `createMrcatz({ icons: { set, custom } })` |
 | `rules: 'required\|min:8'` | `required`, `minLength`, `validate`, atau `schema` (zod/valibot) |
 | `MrCatzEvent::*` (event Livewire) | prop/handler biasa — tidak ada event global |
 

@@ -68,7 +68,7 @@ export function createMrcatz(opts: MrcatzOptions & { registerComponents?: boolea
   };
 }
 
-export { useMrcatz, pushToast, openLightbox, MRCATZ_KEY, type MrcatzOptions, type NotifyFn, type NotifyType } from './config';
+export { useMrcatz, pushToast, openLightbox, MRCATZ_KEY, type MrcatzOptions, type NotifyFn, type NotifyType, type IconOptions, type CustomIcon } from './config';
 export { id as messagesId, en as messagesEn, type Messages, type MessageKey } from './i18n';
 export { col, TONE_BTN, cellValue, displayValue, type ColumnDef, type CellContext, type Tone, type RowAction, type ActionsConfig, type InlineEditConfig } from './columns';
 export { field, initialValues, isVisible, type FieldDef, type FieldType, type FieldOption, type FormValues, type CrudMode, type FieldActionContext, type HintTone } from './fields';
@@ -79,6 +79,6 @@ export { httpSource, memorySource, staticFilters, unwrapPage, type DataSource, t
 export { useDataTable, type DataTableController, type UseDataTableOptions, type PaginationMode } from './composables/useDataTable';
 export { MrcFormError, validateFields, errorMessage, type FormErrors, type StandardSchema } from './validation';
 export { buildExportTable, downloadCsv, printTable, type ExportFormat, type ExportScope } from './export';
-export { isBuiltinIcon, type IconName, type BuiltinIcon } from './icons';
+export { isBuiltinIcon, type IconName, type BuiltinIcon, type IconSet } from './icons';
 // Re-export dari core agar halaman cukup mengimpor satu paket.
 export { filter, highlight, type FilterDefinition, type FilterSchema, type TableQuery, type TablePage, type SortRule } from '@mrcatz/datatable-core';

@@ -120,3 +120,55 @@ export type IconName = BuiltinIcon | (string & {});
 export function isBuiltinIcon(name: string): name is BuiltinIcon {
   return Object.prototype.hasOwnProperty.call(iconPaths, name);
 }
+
+// ------------------------------------------------------------------ icon set
+
+/** Set ikon (sama dengan `icon_set` di `config/mrcatz.php`). `'heroicons'` = alias `'default'`. */
+export type IconSet = 'default' | 'heroicons' | 'material' | 'fontawesome' | 'custom';
+
+/** Alias nama internal → nama ikon Material, agar set font tetap konsisten. */
+const materialAliases: Record<string, string> = {
+  plus: 'add', x: 'close', filter: 'filter_alt', columns: 'view_column', reset: 'restart_alt',
+  'chevron-left': 'chevron_left', 'chevron-right': 'chevron_right', 'chevron-down': 'expand_more', 'chevron-up': 'expand_less',
+  'chevrons-left': 'first_page', 'chevrons-right': 'last_page', 'arrow-up': 'arrow_upward', 'arrow-down': 'arrow_downward',
+  'arrow-up-down': 'unfold_more', pencil: 'edit', trash: 'delete', 'check-square': 'check_box', square: 'check_box_outline_blank',
+  more: 'more_horiz', grip: 'drag_indicator', eye: 'visibility', 'eye-off': 'visibility_off', calendar: 'event',
+  bookmark: 'bookmarks', 'search-x': 'search_off', alert: 'error', file: 'description', printer: 'print',
+  'mouse-pointer': 'mouse', mouse_pointer: 'mouse', hashtag: 'tag', numbers: 'pin',
+};
+
+export function materialName(name: string): string {
+  return materialAliases[name] ?? name;
+}
+
+/** Peta Font Awesome 6 (sama dengan versi Laravel). Nama lain → `fa-solid fa-<nama-dengan-strip>`. */
+const faMap: Record<string, string> = {
+  add: 'fa-solid fa-plus', edit: 'fa-solid fa-pen-to-square', edit_note: 'fa-solid fa-pen-to-square', delete: 'fa-solid fa-trash',
+  delete_forever: 'fa-solid fa-trash-can', delete_sweep: 'fa-solid fa-trash-can', close: 'fa-solid fa-xmark',
+  cancel: 'fa-solid fa-circle-xmark', check_circle: 'fa-solid fa-circle-check', check_box: 'fa-regular fa-square-check',
+  check_box_outline_blank: 'fa-regular fa-square', search: 'fa-solid fa-magnifying-glass', search_off: 'fa-solid fa-magnifying-glass',
+  save: 'fa-solid fa-floppy-disk', download: 'fa-solid fa-download', tune: 'fa-solid fa-sliders', filter_alt: 'fa-solid fa-filter',
+  bookmarks: 'fa-solid fa-bookmark', restart_alt: 'fa-solid fa-rotate', info: 'fa-solid fa-circle-info',
+  warning: 'fa-solid fa-triangle-exclamation', error: 'fa-solid fa-circle-exclamation', inbox: 'fa-solid fa-inbox',
+  home: 'fa-solid fa-house', chevron_left: 'fa-solid fa-chevron-left', chevron_right: 'fa-solid fa-chevron-right',
+  keyboard_arrow_up: 'fa-solid fa-chevron-up', keyboard_arrow_down: 'fa-solid fa-chevron-down', unfold_more: 'fa-solid fa-arrows-up-down',
+  add_circle: 'fa-solid fa-circle-plus', table_view: 'fa-solid fa-table', picture_as_pdf: 'fa-solid fa-file-pdf',
+  description: 'fa-solid fa-file-csv', select_all: 'fa-solid fa-border-all', view_column: 'fa-solid fa-table-columns',
+  visibility: 'fa-solid fa-eye', visibility_off: 'fa-solid fa-eye-slash', autorenew: 'fa-solid fa-arrows-rotate',
+  event: 'fa-solid fa-calendar-days', calendar_today: 'fa-solid fa-calendar-day', expand_more: 'fa-solid fa-chevron-down',
+  expand_less: 'fa-solid fa-chevron-up', refresh: 'fa-solid fa-arrows-rotate', person: 'fa-solid fa-user',
+  mail: 'fa-solid fa-envelope', lock: 'fa-solid fa-lock', link: 'fa-solid fa-link', phone: 'fa-solid fa-phone',
+  drag_indicator: 'fa-solid fa-grip-vertical', more_horiz: 'fa-solid fa-ellipsis', upload: 'fa-solid fa-upload',
+  keyboard: 'fa-solid fa-keyboard', first_page: 'fa-solid fa-angles-left', last_page: 'fa-solid fa-angles-right',
+};
+
+export function fontAwesomeClass(name: string): string {
+  const n = materialName(name);
+  return faMap[n] ?? `fa-solid fa-${n.replace(/_/g, '-')}`;
+}
+
+const SVG_CHILD = /^\s*<(path|circle|g|rect|line|polygon|polyline|ellipse)\b/;
+/** `true` bila nilai ikon kustom berupa isi `<svg>` (path dsb.) — akan dibungkus `<svg>` 24×24 stroke. */
+export function isSvgChildren(value: string): boolean {
+  return SVG_CHILD.test(value);
+}

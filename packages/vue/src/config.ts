@@ -1,4 +1,5 @@
-import { inject, reactive, type InjectionKey } from 'vue';
+import { inject, reactive, type Component, type InjectionKey } from 'vue';
+import type { IconSet } from './icons';
 import { en, id, mergeMessages, translate, type DeepPartial, type MessageKey, type Messages } from './i18n';
 
 export type NotifyType = 'success' | 'error' | 'warning' | 'info';
@@ -19,6 +20,36 @@ export interface MrcatzOptions {
   imageBaseUrl?: string;
   /** Format tanggal bawaan untuk `col.date`. */
   dateLocale?: string;
+  /** Pengaturan ikon (pengganti `icon_set` / `custom_icons` / `form_icons` di `config/mrcatz.php`). */
+  icons?: IconOptions;
+}
+
+/**
+ * Nilai ikon kustom:
+ * - isi SVG (`'<path d="..."/>'`, `<circle>`, `<g>`, ...) → dibungkus `<svg>` 24×24 stroke 1.5
+ * - HTML lain (`'<i class="bi bi-envelope"></i>'`) → dirender apa adanya
+ * - komponen Vue (mis. dari `lucide-vue-next`) → dirender dengan prop `size`
+ */
+export type CustomIcon = string | Component;
+
+export interface IconOptions {
+  /**
+   * - `'default'` / `'heroicons'`: SVG inline bawaan (Heroicons outline), tanpa dependensi.
+   * - `'material'`: font Material (muat sendiri font-nya, mis. Google Fonts Material Symbols).
+   * - `'fontawesome'`: kelas Font Awesome 6 (`<i class="fa-solid ...">`), muat CSS-nya sendiri.
+   * - `'custom'`: hanya pakai `custom`, sisanya jatuh ke SVG bawaan.
+   */
+  set?: IconSet;
+  /** Kelas font untuk set `'material'`. Default `'material-symbols-outlined'`. */
+  materialClass?: string;
+  /** Ikon kustom per nama; selalu diprioritaskan di set mana pun (gabungan `custom_icons` + `form_icons`). */
+  custom?: Record<string, CustomIcon>;
+}
+
+export interface ResolvedIcons {
+  set: IconSet;
+  materialClass: string;
+  custom: Record<string, CustomIcon>;
 }
 
 export interface Toast {
@@ -55,6 +86,7 @@ export interface MrcatzContext {
   notify: NotifyFn;
   imageBaseUrl: string;
   dateLocale: string;
+  icons: ResolvedIcons;
 }
 
 export const MRCATZ_KEY: InjectionKey<MrcatzContext> = Symbol('mrcatz');
@@ -67,6 +99,11 @@ export function createContext(opts: MrcatzOptions = {}): MrcatzContext {
     notify: opts.notify ?? pushToast,
     imageBaseUrl: opts.imageBaseUrl ?? '',
     dateLocale: opts.dateLocale ?? (opts.locale === 'en' ? 'en-US' : 'id-ID'),
+    icons: {
+      set: opts.icons?.set ?? 'default',
+      materialClass: opts.icons?.materialClass ?? 'material-symbols-outlined',
+      custom: opts.icons?.custom ?? {},
+    },
   };
 }
 
